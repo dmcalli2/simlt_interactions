@@ -12,7 +12,7 @@ sim_data <- sim_data %>%
   ungroup()
 
 # Rename and convert to numeric
-drugs_select <- "Airways"
+# drugs_select <- "Airways"
 
 mydf <- filter(sim_data, drug_group_allocation == drugs_select) %>%
   arrange(desc(my_condition), desc(my_drug), studyno)
@@ -27,5 +27,5 @@ mydf <- as.data.frame (mydf)
 
 # Create ragged array
 myrag <- winBugsRaggedArray(mydf, effects = c("drug", "condition"), observations = "con", 
-                            covariates  = list(observations = c("study", "")))
+                            covariates  = list(observations = c("study")))
 

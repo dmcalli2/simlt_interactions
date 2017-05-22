@@ -1,68 +1,75 @@
-#01 Simulate outcome data)
+#01 Simulate outcome data
+### Run through 187 trials and simulat data with interactions
+
+
 load("Dataset_of_trials.Rdata")
 
 # Packages
-library(dplyr)
-library(tidyr)
+library(tidyverse)
+library("simstudy")
+library(readxl)
+library(Hmisc)
+
+# Functions
+MakeCsv <- function (mypath = "data/sim_df1.xlsx") {
+  # Functions to let me use excel rather than CSV files in constructing data
+  my_name <- round(runif(1, 10000, 90000),0)
+  read_excel(path = mypath) %>%
+    write_csv(paste0("scratch_data/", my_name, ".csv"))
+  paste0("scratch_data/", my_name, ".csv")
+}
 
 sim_data <- select (trials, drug_group_allocation, my_condition, my_drug, enrollment)
 rm(trials)
 
-## Categorical data constants
-comorbidity_prevalence <- 0.2
-baseline_risk <- 0.2
-comorbidity_effect <- runif(nrow(sim_data), 1.2, 1.5)
-tx_effect <- runif(nrow(sim_data), 0.65,0.75)
-interaction_effect <- 1.0
+## Create baseline variables
+def <- defRead(MakeCsv())
+print(def)
 
-## COntinuous data constants
-baseline_mean <- 70
-mean_tx_effect <- rnorm(nrow(sim_data), 10, 1)
-mean_comorbidity_effect <- rnorm(nrow(sim_data), 5, 0.5)
-mean_interaction_effect <- 0 #2.5
-baseline_sd <- rnorm(nrow(sim_data), 15, 1)
+## Loop through each trial
+res <- map(sim_data$enrollment, function (enrol) {
+  dt1 <- simstudy::genData(enrol, def)
+  
+  ## Dichotomise age to stratify by it
+  dt1$age5 <- cut2(dt1$age, g = 5)
+  
+  ## Add treatent allocation, stratified by age and sex
+  dt1 <- trtAssign(dt1, n = 2, balanced = TRUE, strata = c("age5", "sex"), 
+            grpName = "alloc")
+  
+  ## Calculate outcome based on covariates and treatment, with interactions
+  trt_eff_mean <- with(dt1,
+                       age*0.01 +
+                         sex*0.05 +
+                         dep*0.05 +
+                         pain* 0.1 +
+                         alloc * -0.20 +
+                         alloc*dep*0.10 +
+                         alloc*pain*0.02)
+  dt1$outcome_con <- rnorm(nrow(dt1), mean = trt_eff_mean, sd = 1)
+  
+  ## Continuous outcome as normal distribution with mean = 0, and SD 1
+  dt1$outcome_cat <- dt1$outcome_con > quantile(dt1$outcome, probs = 0.9)
+  dt1$outcome_log <- log(dt1$outcome_con + 0.0001- min(dt1$outcome_con))
+  dt1$outcome_con <- dt1$outcome_con + rnorm(nrow(dt1), 0, 0.2)
+  
+  ## Run regression model on data adn save coefficient and variance covariance matrix
+  mod_con <- glm(outcome_con ~ age + sex + dep + pain +
+                  alloc +
+                  alloc:age + alloc:sex + alloc:dep + alloc:pain,
+                family = "gaussian",
+                data = dt1)
+  mod_cat <- update(mod_con, outcome_cat ~ . , family = "binomial")
+  mod_log <- update(mod_con, outcome_log ~ . , family = "gaussian")
+  
+  mdls <- list(con = mod_con, cat = mod_cat, log = mod_log)
+  mdls  <- map(mdls, function (x) {
+    map(list(coef = coef, vcov = vcov), function (y) y(x))
+  })
+  mdls
+})
+sim_data$con <- map(res, function (x) x$con)
+sim_data$cat <- map(res, function (x) x$cat)
+sim_data$log <- map(res, function (x) x$log)
 
-
-sim_data$pl_n_0 <- sim_data$enrollment * 0.5 * (1-comorbidity_prevalence)
-sim_data$pl_n_1 <- sim_data$enrollment * 0.5 * comorbidity_prevalence
-sim_data$tx_n_0 <- sim_data$pl_n_0
-sim_data$tx_n_1 <- sim_data$pl_n_1
-
-## Events in placebo
-sim_data$pl_x_0 <- sim_data$pl_n_0 * baseline_risk
-sim_data$pl_x_1 <- sim_data$pl_n_1 * baseline_risk * comorbidity_effect
-
-## Events in treatment
-sim_data$tx_x_0 <- sim_data$tx_n_0 * baseline_risk * tx_effect
-sim_data$tx_x_1 <- sim_data$tx_n_1 * baseline_risk * comorbidity_effect * tx_effect *interaction_effect
-
-# Mean outcome in placebo
-sim_data$pl_y_0 <- baseline_mean
-sim_data$pl_y_1 <- baseline_mean + mean_comorbidity_effect
-
-# Mean outcome in tx
-sim_data$tx_y_0 <- baseline_mean - mean_tx_effect
-sim_data$tx_y_1 <- baseline_mean + mean_comorbidity_effect - mean_tx_effect + mean_interaction_effect
-
-# Round all
-vars <- c('pl_n_0', 'pl_n_1', 'tx_n_0', 'tx_n_1', 'pl_x_0', 'pl_x_1', 'tx_x_0', 'tx_x_1')
-sim_data [ , vars] <- lapply(sim_data[,vars], round, digits = 0)
-
-# Assign study_number
-sim_data$studyno <- seq_along(sim_data$drug_group_allocation)
-
-## Move into long format needed for analysis
-sim_data <- sim_data %>%
-  select(-enrollment) %>%
-  gather(varname, value, -drug_group_allocation, -my_drug, - my_condition, -studyno) %>%
-  separate (varname, into = c("alloc", "event_n", "strata"), sep = "_") 
-sim_data <- spread(sim_data, event_n, value)
-
-## Assign standard error for each
-sim_data$se_prec <- 1/(baseline_sd/ sim_data$n^0.5)^2
-
-# Convert alloc and strata into numeric
-sim_data$alloc <- ifelse(sim_data$alloc == "tx", 1, 0)
-sim_data$strata <- as.numeric(sim_data$strata)
-
-
+saveRDS(sim_data, file = "scratch_data/simulated_data.Rds")

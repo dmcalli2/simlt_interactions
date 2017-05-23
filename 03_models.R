@@ -5,14 +5,100 @@ drugs_select <- "Airways"
 source('02_arrange_data_arrays.R') 
 
 library(rjags)
-load.module('glm')
+# load.module('glm')
 library(stringr)
+
 ## Use double colon for these rather than library
 # library("matrixcalc") 
 # library(Matrix)
+#library("clusterGeneration")
 
-# Write model ----
-modelstring <- "
+
+# Run models ----
+
+#### Simple model to recover coefficients for a single study ----
+simplemodelstring <- "
+model{
+  coef[] ~ dmnorm(mu[], vcov_prec[,])
+  for(i in 1:Ncoef) {
+    mu[i] ~ dnorm(0, 0.0001)
+  }
+}# model
+"
+#Write model to text file
+writeLines(simplemodelstring, con= "jags/simplemodelstring.txt")
+
+## Create vcov with very low variance, then take recoprocals for
+## very high precision
+a<- matrix(rep(1e-10,100), nrow = 10)  # covariance
+diag(a) <- 1e-6 #  variance
+a <- solve(a) # invert to get precision, which is what JAGS expects
+# Check matrix
+Matrix::isSymmetric(a)
+matrixcalc::is.positive.definite(a %>%  round(3))
+
+# Run model for a single study, fix the variance/covariance matrix
+study_choose <- 1
+jags <- jags.model('jags/simplemodelstring.txt',
+                   data = list (coef = sim_data$con[[study_choose]]$coef,
+                                vcov_prec = a,
+                                Ncoef = 10
+                   ),
+                   n.chains = 2,
+                   n.adapt = 1000)
+data(LINE)
+LINE$recompile()
+LINE.out <- coda.samples(jags,
+                         c('mu'),
+                         5000)
+res <- summary(LINE.out)
+cbind(original = sim_data$con[[study_choose]]$coef,
+      res$statistics)
+## Recovers coefficients to 5 dps
+vcov <- sim_data$con[[study_choose]]$vcov
+## Take inverse of matrix, note not the same as taking the inverse of each element
+vcov <- solve(vcov)
+Matrix::isSymmetric(vcov)
+matrixcalc::is.positive.definite(vcov %>%  round(4))
+vcov_prec <- round(sim_data$con[[study_choose]]$prec_matrix, 4)
+# Run model for actual vcov
+jags <- jags.model('jags/simplemodelstring.txt',
+                   data = list (coef = sim_data$con[[study_choose]]$coef,
+                                vcov_prec = vcov_prec,
+                                Ncoef = 10
+                   ),
+                   n.chains = 2,
+                   n.adapt = 1000)
+data(LINE)
+LINE$recompile()
+LINE.out <- coda.samples(jags,
+                         c('mu'),
+                         5000)
+cbind(original = sim_data$con[[study_choose]]$coef,
+      summary(LINE.out)$statistics)
+gelman.diag(LINE.out)
+
+pdf("figures/Diagnostic_plot_single_study.pdf")
+gelman.plot(LINE.out, ylim = c(0.9, 1.1))
+dev.off()
+
+res <- as.matrix(LINE.out, iters = FALSE, chains = FALSE) %>% 
+  as_tibble() %>% 
+  slice(1:1000)
+names(res) <- names(sim_data$con[[study_choose]]$coef)
+
+# Model converged by 5000
+update(jags, 5000)
+data(LINE)
+LINE$recompile()
+LINE.out <- coda.samples(jags,
+                         c('mu'),
+                         20000)
+
+cbind(original = sim_data$con[[study_choose]]$coef,
+      summary(LINE.out)$statistics)
+## Model with study nested inside condition and drug-class
+modelstringnested <- "
 model{
   for(Ddrug in 1:Ndrug) {
     for(Dcondition in Sdrug[Ddrug]:(Sdrug[Ddrug+1]-1)){
@@ -36,20 +122,8 @@ model{
   }# end drug class
 }# model
 "
-
-function (Simple_model){
-### Simple model
-# modelstring <- "
-# model{
-#   coef[] ~ dmnorm(mu[], vcov[,])
-#   for(i in 1:Ncoef) {
-#     mu[i] ~ dnorm(0, 0.0001)
-#   }
-# }# model
-# "
-}
-
-writeLines(modelstring, con= "jags/model.txt")
+#Write model to text file
+writeLines(modelstringnested, con= "jags/modelstringnested.txt")
 
 # Run model
 # Turn list of coefficeints into a matrix of coefficients

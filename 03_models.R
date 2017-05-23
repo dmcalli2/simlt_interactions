@@ -24,11 +24,16 @@ model{
         mu[9, Dstudy]  ~ dnorm(mu9_mu[Dcondition],  mu9_prec[Dcondition])
         mu[10, Dstudy] ~ dnorm(mu10_mu[Dcondition], mu10_prec[Dcondition])
 
-      } # each study
-     mu9_mu[Dcondition] ~ dnorm(0, 0.0001)
-     mu10_mu[Dcondition]~ dnorm(0, 0.0001)
-    }# each condition
-  }# each drug class
+      } # end study
+     # Priors for each condition
+     mu9_mu[Dcondition]  ~ dnorm(0, 0.0001)           # mean dep:alloc
+     mu10_mu[Dcondition] ~ dnorm(0, 0.0001)           # mean pain:alloc
+     mu9_sd[Dcondition]  ~ dnorm(0,0.00001)T(0,)      # sd dep:alloc
+     mu10_sd[Dcondition] ~ dnorm(0,0.00001)T(0,)      # sd pain:alloc
+     mu9_prec[Dcondition] <- 1/mu9_sd[Dcondition]^2   # prec dep:alloc
+     mu10_prec[Dcondition] <- 1/mu10_sd[Dcondition]^2 # prec pain:alloc
+    }# end condition
+  }# end drug class
 }# model
 "
 
@@ -70,7 +75,7 @@ jags <- jags.model('jags/model.txt',
                               Scondition = myrag$Scondition,
                               coef = coef,
                               vcov = vcov,
-                              Ncoef = 8
+                              Ncoef = 8 # note 8 of 10 coefficeints are independent for each study
                    ),
                    n.chains = 2,
                    n.adapt = 1000)
@@ -79,7 +84,7 @@ update(jags, 10000) # Burn in
 data(LINE)
 LINE$recompile()
 LINE.out <- coda.samples(jags,
-                         c('mu'),
+                         c('mu[1,1]', 'mu9_mu', 'mu9_prec', 'mu10_mu', 'mu10_prec'),
                          20000)
 res <- summary(LINE.out)
 compare_coefs <- res$statistics[, "Mean"]

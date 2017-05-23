@@ -73,7 +73,8 @@ res <- pmap(sim_list, .f = function (enrollment, dep_tx, pain_tx, alloc_tx, allo
   dt1$outcome_cat <- dt1$outcome_con > quantile(dt1$outcome, probs = 0.9)
   dt1$outcome_log <- log(dt1$outcome_con + 0.0001- min(dt1$outcome_con))
   #dt1$outcome_con <- dt1$outcome_con + rnorm(nrow(dt1), 0, 0.2)
-  
+  # Examine effect of centring on coefficients, except intercept, essentially none
+  # dt_old <- dt1
   ## Centre all dichotmous variables (age already centred)
   dt1[ , c("alloc", "sex", "dep", "pain")] <- lapply(dt1[ , c("alloc", "sex", "dep", "pain")],
                                                      function(x) x - mean(x))
@@ -84,6 +85,7 @@ res <- pmap(sim_list, .f = function (enrollment, dep_tx, pain_tx, alloc_tx, allo
                   alloc:age + alloc:sex + alloc:dep + alloc:pain,
                 family = "gaussian",
                 data = dt1)
+  # mod_old <- update(mod_con, data = dt_old)
   mod_cat <- update(mod_con, outcome_cat ~ . , family = "binomial")
   mod_log <- update(mod_con, outcome_log ~ . , family = "gaussian")
   
@@ -99,11 +101,17 @@ sim_data$con <- map(res, function (x) x$con)
 sim_data$cat <- map(res, function (x) x$cat)
 sim_data$log <- map(res, function (x) x$log)
 
-## Check precision matrix
-# PrecCheck <- function (model_type = sim_data$con) {
-#   each_study <- map_lgl(model_type, ~ matrixcalc::is.positive.semi.definite(.x$prec_matrix %>%  round()))
-#   (each_study)
-# }
-# which(!PrecCheck(sim_data$con))
+# Check precision matrix
+PrecCheck <- function (model_type = sim_data$con) {
+  each_study <- map_lgl(model_type, ~ matrixcalc::is.positive.semi.definite(.x$prec_matrix %>%  
+                                                                              round(3)))
+  (each_study)
+}
+any(!PrecCheck(sim_data$con)) # should be FALSE
+any(!PrecCheck(sim_data$cat)) # should be FALSE
+any(!PrecCheck(sim_data$log)) # should be FALSE
 
 saveRDS(sim_data, file = "scratch_data/simulated_data.Rds")
+
+## Examine effect on glm of centring variables
+

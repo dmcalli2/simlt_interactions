@@ -1,9 +1,10 @@
-# 03 Categorical data analysis
+# "03_single_study_models.R"
 # Choice of analyses - make in 01_simulate_outcome
 
-drugs_select <- "Airways"
-source('02_arrange_data_arrays.R') 
+# Read in sim_study
+sim_data <- readRDS(file = "scratch_data/simulated_data.Rds")
 
+library(tidyverse)
 library(rjags)
 # load.module('glm')
 library(stringr)
@@ -38,7 +39,8 @@ Matrix::isSymmetric(a)
 matrixcalc::is.positive.definite(a %>%  round(3))
 
 # Run model for a single study
-study_choose <- 118
+study_choose <- sample(seq_along(sim_data$study_id), 1)
+print(study_choose)
 jags <- jags.model('jags/simplemodelstring.txt',
                    data = list (coef = sim_data$con[[study_choose]]$coef,
                                 vcov_prec = a,
@@ -51,11 +53,14 @@ LINE$recompile()
 LINE.out <- coda.samples(jags,
                          c('mu'),
                          5000)
-res <- summary(LINE.out)
-cbind(original = sim_data$con[[study_choose]]$coef,
-      res$statistics)
-## Recovers coefficients to 5 dps
-vcov <- sim_data$con[[study_choose]]$vcov
+CmprCoef <- function (){
+  cmpr <- tibble (original = sim_data$con[[study_choose]]$coef,
+          res = summary(LINE.out)$statistics[,"Mean"])
+  cmpr$diff <- cmpr$res - cmpr$original
+  cmpr
+}
+CmprCoef()
+## Recovers coefficients
 
 #### Attempt to recover coefficients for a single study, use actual precision matrix ----
 # Run model for actual vcov
@@ -74,6 +79,7 @@ LINE.out <- coda.samples(jags,
                          5000)
 cbind(original = sim_data$con[[study_choose]]$coef,
       summary(LINE.out)$statistics)
+CmprCoef()
 gelman.diag(LINE.out)
 
 pdf("figures/Diagnostic_plot_single_study.pdf")
@@ -87,7 +93,7 @@ LINE$recompile()
 LINE.out <- coda.samples(jags,
                          c('mu'),
                          20000)
-
-cbind(original = sim_data$con[[study_choose]]$coef,
-      summary(LINE.out)$statistics)
-
+CmprCoef()
+print(study_choose)
+print(sim_data$enrollment[study_choose])
+## Recovers coefficients

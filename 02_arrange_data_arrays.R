@@ -26,6 +26,7 @@ mydf$condition <-as.numeric(factor(mydf$my_condition, levels = unique(mydf$my_co
 mydf <- as.data.frame (mydf)
 
 # Create ragged array
-myrag <- winBugsRaggedArray(mydf, effects = c("drug", "condition"), observations = "con", 
+myrag <- winBugsRaggedArray(mydf, effects = c("drug", "condition"),
+                            observations = c("con", "cat", "log"), 
                             covariates  = list(observations = c("study")))
 

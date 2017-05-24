@@ -119,7 +119,7 @@ writeLines(modelstring_fixed, con= "jags/modelstring_fixed.txt")
 # Turn list of coefficients into a matrix of coefficients
 # Where each column is a study
 ## Chose outcome type
-outcome <- myrag$log # con continuous, cat categorical or log log-transformed
+outcome <- myrag$con # con continuous and cat categorical
 
 # Extract coefficients and precision into matrices
 coef <-  map(outcome, ~ .x$coef)

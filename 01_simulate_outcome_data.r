@@ -106,7 +106,6 @@ res <- pmap(sim_list, .f = function (dep_eff, pain_eff, alloc_eff, alloc_dep_eff
   ## regardless of chosen simulation
   dt1$outcome_con <- trt_eff_mean + rnorm(length(trt_eff_mean), mean = 0, sd = 0.01)
   dt1$outcome_cat <- rbinom(length(dt1$outcome_con), size = 1, prob = plogis(dt1$outcome_con))
-  dt1$outcome_log <- exp(dt1$outcome_con)
   #dt1$outcome_con <- dt1$outcome_con + rnorm(nrow(dt1), 0, 0.2)
   # Examine effect of centring on coefficients, except intercept, essentially none
   # dt_old <- dt1
@@ -122,9 +121,8 @@ res <- pmap(sim_list, .f = function (dep_eff, pain_eff, alloc_eff, alloc_dep_eff
                 data = dt1)
   # mod_old <- update(mod_con, data = dt_old)
   mod_cat <- update(mod_con, outcome_cat ~ . , family = "binomial")
-  mod_log <- update(mod_con, log(outcome_log) ~ . , family = "gaussian")
-  
-  mdls <- list(con = mod_con, cat = mod_cat, log = mod_log)
+
+  mdls <- list(con = mod_con, cat = mod_cat)
 
     mdls  <- map(mdls, function (x) {
     map(list(coef = coef, vcov = vcov, prec_matrix = PrecMtrx), function (y) y(x))
@@ -135,7 +133,6 @@ res <- pmap(sim_list, .f = function (dep_eff, pain_eff, alloc_eff, alloc_dep_eff
 ## Save coefficients and variance-covariance matrix for each model to data
 sim_data$con <- map(res, function (x) x$con)
 sim_data$cat <- map(res, function (x) x$cat)
-sim_data$log <- map(res, function (x) x$log)
 
 # Check precision matrix
 PrecCheck <- function (model_type = sim_data$con) {
@@ -144,7 +141,6 @@ PrecCheck <- function (model_type = sim_data$con) {
 }
 any(!PrecCheck(sim_data$con)) # should be FALSE
 any(!PrecCheck(sim_data$cat)) # should be FALSE
-any(!PrecCheck(sim_data$log)) # should be FALSE
 
 saveRDS(sim_data, file = "scratch_data/simulated_data.Rds")
 

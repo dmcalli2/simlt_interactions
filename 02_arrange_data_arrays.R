@@ -27,6 +27,6 @@ mydf <- as.data.frame (mydf)
 
 # Create ragged array
 myrag <- winBugsRaggedArray(mydf, effects = c("drug", "condition"),
-                            observations = c("con", "cat", "log"), 
+                            observations = c("con", "cat"), 
                             covariates  = list(observations = c("study")))
 

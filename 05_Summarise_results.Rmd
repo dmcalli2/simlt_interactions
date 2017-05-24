@@ -1,0 +1,48 @@
+---
+title: "Report"
+author: "David McAllister"
+date: "24 May 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, root.dir = rprojroot::find_rstudio_root_file())
+library(tidyverse)
+library(purrr)
+```
+
+## Initial tests
+
+Was able to recover estimates for individual trials using the following model.
+
+```{r}
+read_lines("jags/simplemodelstring.txt")
+```
+
+Using the following very simple simulation (the same fixed effect for all trials), I was able to recover wder-drug-grouping level estimates for models where trials was nested within wider drug grouping, condition and drug class, and where each the interaction for each trial was treated as fixed.
+
+```{r "Data definition", fig.cap = "Data definition"}
+readxl::read_excel("data/sim_df1.xlsx")
+```
+
+```{r "Effects definitions", fig.cap = "Effects definitions"}
+readxl::read_excel("data/sim_effects.xlsx")
+```
+
+## The following results were obtained
+
+```{r}
+model_names <- c("cat_fixed.Rds",
+                 "cat_pooled.Rds",
+                 "cat_cond_nest.Rds",
+                 "cat_dc_nest.Rds",
+                 "con_fixed.Rds",
+                 "con_pooled.Rds",
+                 "con_cond_nest.Rds",
+                 "con_dc_nest.Rds")
+models <- as.list(model_names)
+names(models) <- stringr::str_sub(model_names,1,-5)
+models <- map(models, function(x) readRDS(paste0("model_summaries/",x)))
+map(models, function(x) x$stat)
+```
+

@@ -118,39 +118,51 @@ writeLines(modelstring_fixed, con= "jags/modelstring_fixed.txt")
 #### Run models ----
 # Turn list of coefficients into a matrix of coefficients
 # Where each column is a study
-## Chose outcome type
-outcome <- myrag$con # con continuous and cat categorical
 
-# Extract coefficients and precision into matrices
-coef <-  map(outcome, ~ .x$coef)
-coef <- sapply(coef, identity, simplify="matrix")
-dim(coef)
+## Chose outcome type, or loop through
+outcomes <- list(con = myrag$con, cat = myrag$cat) # con continuous and cat categorical
 
-# Turn list of precision matrices into array of precision matrices
-# Where each z is a study
-prec_matrix <-  map(outcome, ~ .x$prec_matrix) 
-prec_matrix <- sapply(prec_matrix, identity, simplify="array")
-prec_matrix <- round(prec_matrix, 3)
-dim(prec_matrix)
+## Chose modeltype, one of four
+modeltypes <- c(fixed = "jags/modelstring_fixed.txt", 
+               pooled = "jags/modelstring_pooled.txt",
+               dc_nest = "jags/modelstringnested_class.txt",
+               cond_nest = "jags/modelstringnested_cond.txt")
 
-jags <- jags.model("jags/modelstring_fixed.txt",
-                   data = list (Ndrug = myrag$Ndrug,
-                                Sdrug = myrag$Sdrug,
-                                Scondition = myrag$Scondition,
-                                coef = coef,
-                                prec_matrix = prec_matrix,
-                                Ncoef = 8 # note 8 of 10 coefficients are independent for each study
-                   ),
-                   n.chains = 2,
-                   n.adapt = 1000)
-update(jags, 10000) # Burn in
+for(outcome in names(outcomes)){
+  # Extract coefficients into matrix, each row is a trial
+  coef <-  map(outcomes[[outcome]], ~ .x$coef)
+  coef <- sapply(coef, identity, simplify="matrix")
+  dim(coef)
+  
+  # Turn list of precision matrices into array of precision matrices
+  # Where each z is a study
+  prec_matrix <-  map(outcomes[[outcome]], ~ .x$prec_matrix) 
+  prec_matrix <- sapply(prec_matrix, identity, simplify="array")
+  prec_matrix <- round(prec_matrix, 3)
+  dim(prec_matrix)
 
-data(LINE)
-LINE$recompile()
-LINE.out <- coda.samples(jags,
-                         c('dep_class', 'pain_class',
-                           'dep_cond', 'pain_cond',
-                           'dep', 'pain',
-                           'mu9_prec', 'mu10_prec'),
-                         20000)
-summary(LINE.out)
+  for(modeltype in names(modeltypes)){
+      # Run Jags Model    
+      jags <- jags.model(modeltypes[modeltype],
+                         data = list (Ndrug = myrag$Ndrug,
+                                      Sdrug = myrag$Sdrug,
+                                      Scondition = myrag$Scondition,
+                                      coef = coef,
+                                      prec_matrix = prec_matrix,
+                                      Ncoef = 8 # note 8 of 10 coefficients are independent for each study
+                         ),
+                         n.chains = 2,
+                         n.adapt = 1000)
+      update(jags, 10000) # Burn in
+      
+      data(LINE)
+      LINE$recompile()
+      LINE.out <- coda.samples(jags,
+                               c('dep_class', 'pain_class',
+                                 'dep_cond', 'pain_cond',
+                                 'dep', 'pain',
+                                 'mu9_prec', 'mu10_prec'),
+                               20000)
+      saveRDS(summary(LINE.out), file = paste0("model_summaries/", outcome, "_", modeltype, ".Rds"))
+  } ## End of models loop
+} ## End of outcomes loop

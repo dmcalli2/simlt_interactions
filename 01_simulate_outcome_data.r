@@ -1,7 +1,5 @@
 #01 Simulate outcome data
 ### Run through 187 trials and simulat data with interactions
-
-
 load("Dataset_of_trials.Rdata")
 
 # Packages

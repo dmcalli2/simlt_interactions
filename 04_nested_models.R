@@ -1,10 +1,10 @@
 ## 04_nested_models.R
 
-drugs_select <- "Airways"
+drugs_select <- "Antidiabetic"
 source('02_arrange_data_arrays.R') 
 
 library(rjags)
-# load.module('glm')
+#load.module('glm')
 library(tidyverse)
 library(stringr)
 
@@ -23,8 +23,8 @@ model{
         
       } # end study
       # Priors for each condition
-      dep_cond[Dcondition]  ~ dnorm(0, 0.0001)           # mean dep:alloc
-      pain_cond[Dcondition] ~ dnorm(0, 0.0001)           # mean pain:alloc
+      dep_cond[Dcondition]  ~ dnorm(dep, 0.0001)           # mean dep:alloc
+      pain_cond[Dcondition] ~ dnorm(pain, 0.0001)           # mean pain:alloc
       mu9_sd[Dcondition]  ~ dnorm(0,0.00001)T(0,)      # sd dep:alloc
       mu10_sd[Dcondition] ~ dnorm(0,0.00001)T(0,)      # sd pain:alloc
       mu9_prec[Dcondition] <- 1/mu9_sd[Dcondition]^2   # prec dep:alloc
@@ -32,9 +32,10 @@ model{
     }# end condition
  # Priors for each drug class
   }# end drug class
+  dep  ~ dnorm(0, 0.0001)           # mean dep:alloc
+  pain ~ dnorm(0, 0.0001)           # mean pain:alloc
 }# model
 "
-#Write model to text file
 writeLines(modelstringnested_cond, con= "jags/modelstringnested_cond.txt")
 
 #### Model with study nested inside drug-class ----
@@ -53,13 +54,15 @@ model{
       # Priors for each condition
       }# end condition
  # Priors for each drug class
-      dep_class[Ddrug]  ~ dnorm(0, 0.0001)           # mean dep:alloc
-      pain_class[Ddrug] ~ dnorm(0, 0.0001)           # mean pain:alloc
+      dep_class[Ddrug]  ~ dnorm(dep, 0.0001)           # mean dep:alloc
+      pain_class[Ddrug] ~ dnorm(pain, 0.0001)           # mean pain:alloc
       mu9_sd[Ddrug]  ~ dnorm(0,0.00001)T(0,)      # sd dep:alloc
       mu10_sd[Ddrug] ~ dnorm(0,0.00001)T(0,)      # sd pain:alloc
       mu9_prec[Ddrug] <- 1/mu9_sd[Ddrug]^2   # prec dep:alloc
       mu10_prec[Ddrug] <- 1/mu10_sd[Ddrug]^2 # prec pain:alloc
   }# end drug class
+  dep  ~ dnorm(0, 0.0001)           # mean dep:alloc
+  pain ~ dnorm(0, 0.0001)           # mean pain:alloc
 }# model
 "
 writeLines(modelstringnested_class, con= "jags/modelstringnested_class.txt")
@@ -122,11 +125,16 @@ writeLines(modelstring_fixed, con= "jags/modelstring_fixed.txt")
 ## Chose outcome type, or loop through
 outcomes <- list(con = myrag$con, cat = myrag$cat) # con continuous and cat categorical
 
-## Chose modeltype, one of four
+## Chose modeltype, or loop through
 modeltypes <- c(fixed = "jags/modelstring_fixed.txt", 
                pooled = "jags/modelstring_pooled.txt",
                dc_nest = "jags/modelstringnested_class.txt",
                cond_nest = "jags/modelstringnested_cond.txt")
+
+params_monitor <- list(fixed = c('dep', 'pain'),
+                       pooled = c('dep', 'pain'),
+                       dc_nest = c('dep_class', 'pain_class', 'dep', 'pain', 'mu9_sd', 'mu10_sd'),
+                       cond_nest = c('dep_cond', 'pain_cond', 'dep', 'pain', 'mu9_sd', 'mu10_sd'))
 
 for(outcome in names(outcomes)){
   # Extract coefficients into matrix, each row is a trial
@@ -153,16 +161,16 @@ for(outcome in names(outcomes)){
                          ),
                          n.chains = 2,
                          n.adapt = 1000)
+      diag <- coda.samples(jags, c("mu", params_monitor[[modeltype]]), 10000)
       update(jags, 10000) # Burn in
       
       data(LINE)
       LINE$recompile()
       LINE.out <- coda.samples(jags,
-                               c('dep_class', 'pain_class',
-                                 'dep_cond', 'pain_cond',
-                                 'dep', 'pain',
-                                 'mu9_prec', 'mu10_prec'),
+                               params_monitor[[modeltype]],
                                20000)
+      print(paste0(outcome, "_", modeltype, ".Rds"))
       saveRDS(summary(LINE.out), file = paste0("model_summaries/", outcome, "_", modeltype, ".Rds"))
+      saveRDS(diag, file = paste0("mcmc_chains/", outcome, "_", modeltype, ".Rds"))
   } ## End of models loop
 } ## End of outcomes loop

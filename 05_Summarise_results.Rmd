@@ -19,7 +19,16 @@ Was able to recover estimates for individual trials using the following model.
 read_lines("jags/simplemodelstring.txt")
 ```
 
-Using the following very simple simulation (the same fixed effect for all trials), I was able to recover wder-drug-grouping level estimates for models where trials was nested within wider drug grouping, condition and drug class, and where each the interaction for each trial was treated as fixed.
+Using the following very simple simulation (the same fixed effect for all trials). For continuous outcomes I was able to recover wider-drug-grouping level estimates for models where trials was nested within wider drug grouping, condition and drug class, and where the interaction for each trial was treated as fixed. For categorical
+
+```{r, fig.cap = "Trials"}
+readRDS("scratch_data/simulated_data.Rds") %>% 
+  filter(drug_group_allocation == "Antidiabetic") %>%
+  group_by(my_drug, my_condition) %>%
+  summarise(n = length(enrollment), participants = sum(enrollment)) %>% 
+  knitr::kable()
+```
+
 
 ```{r "Data definition", fig.cap = "Data definition"}
 readxl::read_excel("data/sim_df1.xlsx")
@@ -32,17 +41,20 @@ readxl::read_excel("data/sim_effects.xlsx")
 ## The following results were obtained
 
 ```{r}
-model_names <- c("cat_fixed.Rds",
-                 "cat_pooled.Rds",
-                 "cat_cond_nest.Rds",
-                 "cat_dc_nest.Rds",
-                 "con_fixed.Rds",
+model_names <- c("con_fixed.Rds",
                  "con_pooled.Rds",
                  "con_cond_nest.Rds",
-                 "con_dc_nest.Rds")
+                 "con_dc_nest.Rds",
+                 "cat_fixed.Rds",
+                 "cat_pooled.Rds",
+                 "cat_cond_nest.Rds",
+                 "cat_dc_nest.Rds")
 models <- as.list(model_names)
 names(models) <- stringr::str_sub(model_names,1,-5)
 models <- map(models, function(x) readRDS(paste0("model_summaries/",x)))
 map(models, function(x) x$stat)
 ```
 
+## Thoughts
+
+The model shows a really large standard error for the null interaction. I think I shoudl use a mildly informative prior. 

@@ -91,7 +91,7 @@ res <- pmap(sim_list, .f = function (dep_eff, pain_eff, alloc_eff, alloc_dep_eff
   ## and sex
   ## dep_eff, pain_eff, alloc_eff, alloc_dep_eff, alloc_pain_eff
   trt_eff_mean <- with(dt1,
-                       qlogis(0.1) + # USe this to create an intercept so is 10%, rest of data centred
+                       qlogis(0.2) + # USe this to create an intercept so is 20%, rest of data centred
                        age*0.01 +
                          sex*0.05 +
                          dep*dep_eff +
@@ -100,13 +100,12 @@ res <- pmap(sim_list, .f = function (dep_eff, pain_eff, alloc_eff, alloc_dep_eff
                          alloc*dep*alloc_dep_eff +
                          alloc*pain*alloc_pain_eff
                        )
-  ## Add a tiny bit of error to linear predictor so model runs
-  ## regardless of chosen simulation
-  dt1$outcome_con <- trt_eff_mean + rnorm(length(trt_eff_mean), mean = 0, sd = 0.01)
-  dt1$outcome_cat <- rbinom(length(dt1$outcome_con), size = 1, prob = plogis(dt1$outcome_con))
-  #dt1$outcome_con <- dt1$outcome_con + rnorm(nrow(dt1), 0, 0.2)
-  # Examine effect of centring on coefficients, except intercept, essentially none
-  # dt_old <- dt1
+ 
+  ## For logistic regression model sample from binomial error
+  dt1$outcome_cat <- rbinom(length(trt_eff_mean), size = 1, prob = plogis(trt_eff_mean))
+  ## Add a tiny bit of error to linear predictor so continuous model runs even if no error in coefficients
+  dt1$outcome_con <- rnorm(length(trt_eff_mean), mean = trt_eff_mean, sd = 0.01)
+
   ## Centre all dichotmous variables (age already centred)
   dt1[ , c("alloc", "sex", "dep", "pain")] <- lapply(dt1[ , c("alloc", "sex", "dep", "pain")],
                                                      function(x) x - mean(x))

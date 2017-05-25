@@ -82,9 +82,9 @@ cbind(original = sim_data$con[[study_choose]]$coef,
 CmprCoef()
 gelman.diag(LINE.out)
 
-pdf("figures/Diagnostic_plot_single_study.pdf")
-gelman.plot(LINE.out, ylim = c(0.9, 1.1))
-dev.off()
+gelman.plot(LINE.out, ylim = c(0.9, 1.1), ask = FALSE)
+pairs(window(LINE.out, start = 1000, end = 1200) %>% as.matrix(),
+       labels = names(sim_data$con[[study_choose]]$coef))
 
 # Model converged by 5000
 update(jags, 5000)

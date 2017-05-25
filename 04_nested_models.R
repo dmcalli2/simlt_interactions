@@ -8,36 +8,6 @@ library(rjags)
 library(tidyverse)
 library(stringr)
 
-#### Model with study nested inside condition ----
-modelstringnested_cond <- "
-model{
-  for(Ddrug in 1:Ndrug) {
-    for(Dcondition in Sdrug[Ddrug]:(Sdrug[Ddrug+1]-1)){
-      for(Dstudy in Scondition[Dcondition]:(Scondition[Dcondition+1]-1)){
-        coef[, Dstudy] ~ dmnorm(mu[,Dstudy], prec_matrix[, , Dstudy])
-        for(i in 1:Ncoef) { # 8 independent priors for first 8 coefficients
-        mu[i, Dstudy] ~ dnorm(0, 0.0001)
-        }
-        mu[9, Dstudy]  ~ dnorm(dep_cond[Dcondition],  mu9_prec[Dcondition])
-        mu[10, Dstudy] ~ dnorm(pain_cond[Dcondition], mu10_prec[Dcondition])
-        
-      } # end study
-      # Priors for each condition
-      dep_cond[Dcondition]  ~ dnorm(dep, 0.0001)           # mean dep:alloc
-      pain_cond[Dcondition] ~ dnorm(pain, 0.0001)           # mean pain:alloc
-      mu9_sd[Dcondition]  ~ dnorm(0,0.00001)T(0,)      # sd dep:alloc
-      mu10_sd[Dcondition] ~ dnorm(0,0.00001)T(0,)      # sd pain:alloc
-      mu9_prec[Dcondition] <- 1/mu9_sd[Dcondition]^2   # prec dep:alloc
-      mu10_prec[Dcondition] <- 1/mu10_sd[Dcondition]^2 # prec pain:alloc
-    }# end condition
- # Priors for each drug class
-  }# end drug class
-  dep  ~ dnorm(0, 0.0001)           # mean dep:alloc
-  pain ~ dnorm(0, 0.0001)           # mean pain:alloc
-}# model
-"
-writeLines(modelstringnested_cond, con= "jags/modelstringnested_cond.txt")
-
 #### Model with study nested inside drug-class ----
 modelstringnested_class <- "
 model{
@@ -56,7 +26,7 @@ model{
  # Priors for each drug class
       dep_class[Ddrug]  ~ dnorm(dep, 0.0001)           # mean dep:alloc
       pain_class[Ddrug] ~ dnorm(pain, 0.0001)           # mean pain:alloc
-      mu9_sd[Ddrug]  ~ dnorm(0,0.00001)T(0,)      # sd dep:alloc
+      mu9_sd[Ddrug]  ~ dnorm(0,0.0001)T(0,)      # sd dep:alloc
       mu10_sd[Ddrug] ~ dnorm(0,0.00001)T(0,)      # sd pain:alloc
       mu9_prec[Ddrug] <- 1/mu9_sd[Ddrug]^2   # prec dep:alloc
       mu10_prec[Ddrug] <- 1/mu10_sd[Ddrug]^2 # prec pain:alloc
@@ -66,6 +36,36 @@ model{
 }# model
 "
 writeLines(modelstringnested_class, con= "jags/modelstringnested_class.txt")
+
+#### Model with study nested inside drug-class, informative ----
+modelstringnested_class_inform <- "
+model{
+  for(Ddrug in 1:Ndrug) {
+    for(Dcondition in Sdrug[Ddrug]:(Sdrug[Ddrug+1]-1)){
+      for(Dstudy in Scondition[Dcondition]:(Scondition[Dcondition+1]-1)){
+        coef[, Dstudy] ~ dmnorm(mu[,Dstudy], prec_matrix[, , Dstudy])
+        for(i in 1:Ncoef) { # 8 independent priors for first 8 coefficients
+        mu[i, Dstudy] ~ dnorm(0, 0.0001)
+        }
+        mu[9, Dstudy]  ~ dnorm(dep_class[Ddrug],  mu9_prec[Ddrug])
+        mu[10, Dstudy] ~ dnorm(pain_class[Ddrug], mu10_prec[Ddrug])
+      } # end study
+      # Priors for each condition
+      }# end condition
+ # Priors for each drug class
+      dep_class[Ddrug]  ~ dnorm(dep, 0.25)           # mean dep:alloc
+      pain_class[Ddrug] ~ dnorm(pain, 0.25)           # mean pain:alloc
+      mu9_sd[Ddrug]  ~ dnorm(0,0.00001)T(0,)      # sd dep:alloc
+      mu10_sd[Ddrug] ~ dnorm(0,0.00001)T(0,)      # sd pain:alloc
+      mu9_prec[Ddrug] <- 1/mu9_sd[Ddrug]^2   # prec dep:alloc
+      mu10_prec[Ddrug] <- 1/mu10_sd[Ddrug]^2 # prec pain:alloc
+  }# end drug class
+  dep  ~ dnorm(0, 0.25)           # mean dep:alloc
+  pain ~ dnorm(0, 0.25)           # mean pain:alloc
+}# model
+"
+writeLines(modelstringnested_class_inform, con= "jags/modelstringnested_class_inform.txt")
+
 
 #### Model with study only, pooled ----
 modelstring_pooled <- "
@@ -129,12 +129,12 @@ outcomes <- list(con = myrag$con, cat = myrag$cat) # con continuous and cat cate
 modeltypes <- c(fixed = "jags/modelstring_fixed.txt", 
                pooled = "jags/modelstring_pooled.txt",
                dc_nest = "jags/modelstringnested_class.txt",
-               cond_nest = "jags/modelstringnested_cond.txt")
+               dc_nest_inform = "jags/modelstringnested_class_inform.txt")
 
 params_monitor <- list(fixed = c('dep', 'pain'),
                        pooled = c('dep', 'pain'),
                        dc_nest = c('dep_class', 'pain_class', 'dep', 'pain', 'mu9_sd', 'mu10_sd'),
-                       cond_nest = c('dep_cond', 'pain_cond', 'dep', 'pain', 'mu9_sd', 'mu10_sd'))
+                       dc_nest_inform = c('dep_class', 'pain_class', 'dep', 'pain', 'mu9_sd', 'mu10_sd'))
 
 for(outcome in names(outcomes)){
   # Extract coefficients into matrix, each row is a trial

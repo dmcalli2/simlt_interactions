@@ -43,12 +43,12 @@ readxl::read_excel("data/sim_effects.xlsx")
 ```{r}
 model_names <- c("con_fixed.Rds",
                  "con_pooled.Rds",
-                 "con_cond_nest.Rds",
                  "con_dc_nest.Rds",
+                 "con_dc_nest_inform.Rds",
                  "cat_fixed.Rds",
                  "cat_pooled.Rds",
-                 "cat_cond_nest.Rds",
-                 "cat_dc_nest.Rds")
+                 "cat_dc_nest.Rds",
+                 "cat_dc_nest_inform.Rds")
 models <- as.list(model_names)
 names(models) <- stringr::str_sub(model_names,1,-5)
 models <- map(models, function(x) readRDS(paste0("model_summaries/",x)))
@@ -57,4 +57,4 @@ map(models, function(x) x$stat)
 
 ## Thoughts
 
-The model shows a really large standard error for the null interaction. I think I shoudl use a mildly informative prior. 
+The model showed a really large standard deviation for the null interaction (pain) for the categorical data. I decided to use a moderately informative prior - N(mean = 0, precision = 1/2^2^) at the drug-class and whole drug group level, for both interactions.

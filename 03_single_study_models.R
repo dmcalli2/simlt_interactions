@@ -2,7 +2,7 @@
 # Choice of analyses - make in 01_simulate_outcome
 
 # Read in sim_study
-sim_data <- readRDS(file = "scratch_data/simulated_data.Rds")
+sim_data <- readRDS(file = "scratch_data/simulated_data1.Rds")
 
 library(tidyverse)
 library(rjags)
@@ -77,8 +77,6 @@ LINE$recompile()
 LINE.out <- coda.samples(jags,
                          c('mu'),
                          5000)
-cbind(original = sim_data$con[[study_choose]]$coef,
-      summary(LINE.out)$statistics)
 CmprCoef()
 gelman.diag(LINE.out)
 

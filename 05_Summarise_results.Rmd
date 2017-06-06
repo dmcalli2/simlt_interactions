@@ -11,6 +11,8 @@ library(tidyverse)
 library(purrr)
 ```
 
+
+
 ## Initial tests
 
 Was able to recover estimates for individual trials using the following model.
@@ -19,10 +21,10 @@ Was able to recover estimates for individual trials using the following model.
 read_lines("jags/simplemodelstring.txt")
 ```
 
-Using the following very simple simulation (the same fixed effect for all trials). For continuous outcomes I was able to recover wider-drug-grouping level estimates for models where trials was nested within wider drug grouping, condition and drug class, and where the interaction for each trial was treated as fixed. For categorical
+Using the following very simple simulation (variation at drug classes but the same fixed effect for all trials). For continuous outcomes I was able to recover wider-drug-grouping level estimates for models where trials was nested within wider drug grouping, condition and drug class, and where the interaction for each trial was treated as fixed.
 
 ```{r, fig.cap = "Trials"}
-readRDS("scratch_data/simulated_data.Rds") %>% 
+readRDS("scratch_data/simulated_data1.Rds") %>% 
   filter(drug_group_allocation == "Antidiabetic") %>%
   group_by(my_drug, my_condition) %>%
   summarise(n = length(enrollment), participants = sum(enrollment)) %>% 
@@ -35,26 +37,26 @@ readxl::read_excel("data/sim_df1.xlsx")
 ```
 
 ```{r "Effects definitions", fig.cap = "Effects definitions"}
-readxl::read_excel("data/sim_effects.xlsx")
+readxl::read_excel("data/sim_effects1.xlsx")
 ```
 
 ## The following results were obtained
 
 ```{r}
-model_names <- c("con_fixed.Rds",
-                 "con_pooled.Rds",
-                 "con_dc_nest.Rds",
-                 "con_dc_nest_inform.Rds",
-                 "cat_fixed.Rds",
-                 "cat_pooled.Rds",
-                 "cat_dc_nest.Rds",
-                 "cat_dc_nest_inform.Rds")
+model_names <- c("con_fixed",
+                 "con_pooled",
+                 "con_dc_nest",
+                 "con_dc_nest_inform",
+                 "cat_fixed",
+                 "cat_pooled",
+                 "cat_dc_nest",
+                 "cat_dc_nest_inform")
 models <- as.list(model_names)
-names(models) <- stringr::str_sub(model_names,1,-5)
-models <- map(models, function(x) readRDS(paste0("model_summaries/",x)))
+names(models) <- model_names
+models <- map(models, function(x) readRDS(paste0("model_summaries/",x, "_effect",1, ".Rds")))
 map(models, function(x) x$stat)
 ```
 
 ## Thoughts
 
-The model showed a really large standard deviation for the null interaction (pain) for the categorical data. I decided to use a moderately informative prior - N(mean = 0, precision = 1/2^2^) at the drug-class and whole drug group level, for both interactions.
+The model showed a really large standard deviation for the null interaction (pain) for the categorical data. I decided to use a moderately informative prior - N(mean = 0, precision = 1/2^2) at the drug-class and whole drug group level, for both interactions.

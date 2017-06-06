@@ -8,6 +8,56 @@ library(rjags)
 library(tidyverse)
 library(stringr)
 
+#### Model with study only, fixed ----
+modelstring_fixed <- "
+model{
+  for(Ddrug in 1:Ndrug) {
+    for(Dcondition in Sdrug[Ddrug]:(Sdrug[Ddrug+1]-1)){
+      for(Dstudy in Scondition[Dcondition]:(Scondition[Dcondition+1]-1)){
+        coef[, Dstudy] ~ dmnorm(mu[,Dstudy], prec_matrix[, , Dstudy])
+        for(i in 1:Ncoef) { # 8 independent priors for first 8 coefficients
+        mu[i, Dstudy] ~ dnorm(0, 0.0001)
+        }
+        mu[9, Dstudy]  <- dep
+        mu[10, Dstudy] <- pain
+      } # end study
+      # Priors for each condition
+      }# end condition
+ # Priors for each drug class
+  }# end drug class
+      dep  ~ dnorm(0, 0.0001)           # mean dep:alloc
+      pain ~ dnorm(0, 0.0001)           # mean pain:alloc
+}# model
+"
+writeLines(modelstring_fixed, con= "jags/modelstring_fixed.txt")
+
+#### Model with study only, pooled ----
+modelstring_pooled <- "
+model{
+  for(Ddrug in 1:Ndrug) {
+    for(Dcondition in Sdrug[Ddrug]:(Sdrug[Ddrug+1]-1)){
+      for(Dstudy in Scondition[Dcondition]:(Scondition[Dcondition+1]-1)){
+        coef[, Dstudy] ~ dmnorm(mu[,Dstudy], prec_matrix[, , Dstudy])
+        for(i in 1:Ncoef) { # 8 independent priors for first 8 coefficients
+        mu[i, Dstudy] ~ dnorm(0, 0.0001)
+        }
+        mu[9, Dstudy]  ~ dnorm(dep,  mu9_prec)
+        mu[10, Dstudy] ~ dnorm(pain, mu10_prec)
+      } # end study
+      # Priors for each condition
+      }# end condition
+ # Priors for each drug class
+  }# end drug class
+      dep  ~ dnorm(0, 0.0001)           # mean dep:alloc
+      pain ~ dnorm(0, 0.0001)           # mean pain:alloc
+      mu9_sd  ~ dnorm(0,0.00001)T(0,)      # sd dep:alloc
+      mu10_sd ~ dnorm(0,0.00001)T(0,)      # sd pain:alloc
+      mu9_prec <- 1/mu9_sd^2   # prec dep:alloc
+      mu10_prec <- 1/mu10_sd^2 # prec pain:alloc
+}# model
+"
+writeLines(modelstring_pooled, con= "jags/modelstring_pooled.txt")
+
 #### Model with study nested inside drug-class ----
 modelstringnested_class <- "
 model{
@@ -65,58 +115,6 @@ model{
 }# model
 "
 writeLines(modelstringnested_class_inform, con= "jags/modelstringnested_class_inform.txt")
-
-
-#### Model with study only, pooled ----
-modelstring_pooled <- "
-model{
-  for(Ddrug in 1:Ndrug) {
-    for(Dcondition in Sdrug[Ddrug]:(Sdrug[Ddrug+1]-1)){
-      for(Dstudy in Scondition[Dcondition]:(Scondition[Dcondition+1]-1)){
-        coef[, Dstudy] ~ dmnorm(mu[,Dstudy], prec_matrix[, , Dstudy])
-        for(i in 1:Ncoef) { # 8 independent priors for first 8 coefficients
-        mu[i, Dstudy] ~ dnorm(0, 0.0001)
-        }
-        mu[9, Dstudy]  ~ dnorm(dep,  mu9_prec)
-        mu[10, Dstudy] ~ dnorm(pain, mu10_prec)
-      } # end study
-      # Priors for each condition
-      }# end condition
- # Priors for each drug class
-  }# end drug class
-      dep  ~ dnorm(0, 0.0001)           # mean dep:alloc
-      pain ~ dnorm(0, 0.0001)           # mean pain:alloc
-      mu9_sd  ~ dnorm(0,0.00001)T(0,)      # sd dep:alloc
-      mu10_sd ~ dnorm(0,0.00001)T(0,)      # sd pain:alloc
-      mu9_prec <- 1/mu9_sd^2   # prec dep:alloc
-      mu10_prec <- 1/mu10_sd^2 # prec pain:alloc
-}# model
-"
-writeLines(modelstring_pooled, con= "jags/modelstring_pooled.txt")
-
-#### Model with study only, fixed ----
-modelstring_fixed <- "
-model{
-  for(Ddrug in 1:Ndrug) {
-    for(Dcondition in Sdrug[Ddrug]:(Sdrug[Ddrug+1]-1)){
-      for(Dstudy in Scondition[Dcondition]:(Scondition[Dcondition+1]-1)){
-        coef[, Dstudy] ~ dmnorm(mu[,Dstudy], prec_matrix[, , Dstudy])
-        for(i in 1:Ncoef) { # 8 independent priors for first 8 coefficients
-        mu[i, Dstudy] ~ dnorm(0, 0.0001)
-        }
-        mu[9, Dstudy]  <- dep
-        mu[10, Dstudy] <- pain
-      } # end study
-      # Priors for each condition
-      }# end condition
- # Priors for each drug class
-  }# end drug class
-      dep  ~ dnorm(0, 0.0001)           # mean dep:alloc
-      pain ~ dnorm(0, 0.0001)           # mean pain:alloc
-}# model
-"
-writeLines(modelstring_fixed, con= "jags/modelstring_fixed.txt")
-
 
 #### Run models ----
 # Turn list of coefficients into a matrix of coefficients

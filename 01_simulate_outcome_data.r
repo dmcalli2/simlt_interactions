@@ -150,3 +150,4 @@ res_list <-
 
 saveRDS(res_list, file = "scratch_data/simulated_data.Rds")
 
+

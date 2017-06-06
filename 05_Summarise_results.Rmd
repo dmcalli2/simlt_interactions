@@ -3,25 +3,22 @@ title: "Report"
 author: "David McAllister"
 date: "24 May 2017"
 output: html_document
+params:
+   effect_number: 4
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, root.dir = rprojroot::find_rstudio_root_file())
 library(tidyverse)
 library(purrr)
+effect_number <- params$effect_number
 ```
 
 
 
-## Initial tests
+## Data
 
-Was able to recover estimates for individual trials using the following model.
-
-```{r}
-read_lines("jags/simplemodelstring.txt")
-```
-
-Using the following very simple simulation (variation at drug classes but the same fixed effect for all trials). For continuous outcomes I was able to recover wider-drug-grouping level estimates for models where trials was nested within wider drug grouping, condition and drug class, and where the interaction for each trial was treated as fixed.
+The trials for this analysis are as follows.
 
 ```{r, fig.cap = "Trials"}
 readRDS("scratch_data/simulated_data1.Rds") %>% 
@@ -31,14 +28,32 @@ readRDS("scratch_data/simulated_data1.Rds") %>%
   knitr::kable()
 ```
 
+## Baseline characteristics
+
+The baseline characteristics are as follows.
+
 
 ```{r "Data definition", fig.cap = "Data definition"}
 readxl::read_excel("data/sim_df1.xlsx")
 ```
 
-```{r "Effects definitions", fig.cap = "Effects definitions"}
-readxl::read_excel("data/sim_effects1.xlsx")
+
+## Initial tests
+
+I was able to recover estimates for individual trials using the following model.
+
+```{r}
+read_delim("jags/simplemodelstring.txt", delim = "\t")
 ```
+
+I then tried to recover effects for depression-treatment and pain-treatment interactions.
+This is the simulation for dataset `r effect_number`.
+The coefficients used to create this model are as follows
+
+```{r "Effects definitions", fig.cap = "Effects definitions"}
+readxl::read_excel(paste0("data/sim_effects",effect_number, ".xlsx"))
+```
+
 
 ## The following results were obtained
 
@@ -53,7 +68,7 @@ model_names <- c("con_fixed",
                  "cat_dc_nest_inform")
 models <- as.list(model_names)
 names(models) <- model_names
-models <- map(models, function(x) readRDS(paste0("model_summaries/",x, "_effect",1, ".Rds")))
+models <- map(models, function(x) readRDS(paste0("model_summaries/",x, "_effect", effect_number, ".Rds")))
 map(models, function(x) x$stat)
 ```
 

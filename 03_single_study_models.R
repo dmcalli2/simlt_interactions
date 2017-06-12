@@ -95,3 +95,41 @@ CmprCoef()
 print(study_choose)
 print(sim_data$enrollment[study_choose])
 ## Recovers coefficients
+
+
+## Runmodel with coefficients and variance estimates independently rather than part of a nultivariate normal
+
+separatemodelstring <- "
+model{
+  dep  ~ dnorm(mu_dep, dep_prec)
+  pain ~ dnorm(mu_pain, pain_prec)
+  mu_dep  ~ dnorm(0, 0.0001)
+  mu_pain ~ dnorm(0, 0.0001)
+}# model
+"
+
+vcov_prec <- round(sim_data$con[[study_choose]]$prec_matrix,3)
+dep_prec  <- vcov_prec["dep:alloc", "dep:alloc"]
+pain_prec <- vcov_prec["pain:alloc", "pain:alloc"]
+dep  <- sim_data$con[[study_choose]]$coef["dep:alloc"]
+pain <- sim_data$con[[study_choose]]$coef["pain:alloc"]
+
+#Write model to text file
+writeLines(separatemodelstring, con= "jags/sepmodelstring.txt")
+
+jags <- jags.model('jags/sepmodelstring.txt',
+                   data = list (dep = dep,
+                                dep_prec = dep_prec,
+                                pain = pain,
+                                pain_prec = pain_prec),
+                   n.chains = 2,
+                   n.adapt = 1000)
+data(LINE)
+LINE$recompile()
+update(jags, 10000)
+LINE.out <- coda.samples(jags,
+                         c('mu_dep', 'mu_pain'),
+                         5000)
+summary(LINE.out)
+dep
+pain

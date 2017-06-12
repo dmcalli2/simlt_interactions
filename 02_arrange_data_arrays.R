@@ -6,7 +6,7 @@ library(tidyverse)
 res_list <- readRDS(file = "scratch_data/simulated_data.Rds")
 
 # Choose outcome, done from 04_nested models
-# drugs_select <- "Airways"
+drugs_select <- "Airways"
 
 res_rag <- map( seq_along(res_list), function (i) {
   

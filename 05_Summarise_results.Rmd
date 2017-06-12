@@ -62,16 +62,36 @@ model_names <- c("con_fixed",
                  "con_pooled",
                  "con_dc_nest",
                  "con_dc_nest_inform",
+                 "con_dc_nest_inform_sep",
                  "cat_fixed",
                  "cat_pooled",
                  "cat_dc_nest",
-                 "cat_dc_nest_inform")
+                 "cat_dc_nest_inform",
+                 "cat_dc_nest_inform_sep")
 models <- as.list(model_names)
 names(models) <- model_names
 models <- map(models, function(x) readRDS(paste0("model_summaries/",x, "_effect", effect_number, ".Rds")))
-map(models, function(x) x$stat)
+res <- map(models, function(x) x$stat)
+res$con_dc_nest_inform_sep <- res$con_dc_nest_inform_sep [! str_sub(rownames(res$con_dc_nest_inform_sep),1,6) %in% c("mu_dep", "mu_pai"),]
+res$cat_dc_nest_inform_sep <- res$cat_dc_nest_inform_sep [! str_sub(rownames(res$cat_dc_nest_inform_sep),1,6) %in% c("mu_dep", "mu_pai"),]
+res
 ```
 
 ## Thoughts
 
 The model showed a really large standard deviation for the null interaction (pain) for the categorical data. I decided to use a moderately informative prior - N(mean = 0, precision = 1/2^2) at the drug-class and whole drug group level, for both interactions.
+
+This corresponds to the following prior. 
+
+```{r}
+library(ggplot2)
+a <- tibble(x = rnorm(10000, 0, 4))
+qnts <- quantile(a$x, probs = c(0.025, 0.10, 0.25, 0.5, 0.75, 0.90, 0.975))
+qnts_exp <- round(exp(qnts), 2)
+fig <- ggplot(a, aes(x = x)) +
+  geom_density() +
+  scale_x_continuous ("Values", breaks = qnts, labels = qnts_exp)
+fig
+
+```
+

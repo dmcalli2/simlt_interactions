@@ -116,6 +116,37 @@ model{
 "
 writeLines(modelstringnested_class_inform, con= "jags/modelstringnested_class_inform.txt")
 
+
+#### Model with study nested inside drug-class, informative, separate ----
+modelstringnested_class_inform_sep <- "
+model{
+  for(Ddrug in 1:Ndrug) {
+    for(Dcondition in Sdrug[Ddrug]:(Sdrug[Ddrug+1]-1)){
+      for(Dstudy in Scondition[Dcondition]:(Scondition[Dcondition+1]-1)){
+        coef[9, Dstudy]  ~ dnorm(mu_dep [Dstudy], prec_matrix[9, 9, Dstudy])
+        coef[10, Dstudy] ~ dnorm(mu_pain[Dstudy], prec_matrix[10, 10, Dstudy])
+
+        mu_dep[Dstudy]  ~ dnorm(dep_class[Ddrug],  mu9_prec[Ddrug])
+        mu_pain[Dstudy] ~ dnorm(pain_class[Ddrug], mu10_prec[Ddrug])
+      } # end study
+      # Priors for each condition
+      }# end condition
+ # Priors for each drug class
+      dep_class[Ddrug]  ~ dnorm(dep, 0.25)           # mean dep:alloc
+      pain_class[Ddrug] ~ dnorm(pain, 0.25)           # mean pain:alloc
+      mu9_sd[Ddrug]  ~ dnorm(0,0.00001)T(0,)      # sd dep:alloc
+      mu10_sd[Ddrug] ~ dnorm(0,0.00001)T(0,)      # sd pain:alloc
+      mu9_prec[Ddrug] <- 1/mu9_sd[Ddrug]^2   # prec dep:alloc
+      mu10_prec[Ddrug] <- 1/mu10_sd[Ddrug]^2 # prec pain:alloc
+  }# end drug class
+  dep  ~ dnorm(0, 0.25)           # mean dep:alloc
+  pain ~ dnorm(0, 0.25)           # mean pain:alloc
+}# model
+"
+writeLines(modelstringnested_class_inform_sep, con= "jags/modelstringnested_class_inform_separate.txt")
+
+
+
 #### Run models ----
 # Turn list of coefficients into a matrix of coefficients
 # Where each column is a study
@@ -134,12 +165,14 @@ map(seq_along(res_rag), function (effect_number) {
   modeltypes <- c(fixed = "jags/modelstring_fixed.txt", 
                  pooled = "jags/modelstring_pooled.txt",
                  dc_nest = "jags/modelstringnested_class.txt",
-                 dc_nest_inform = "jags/modelstringnested_class_inform.txt")
+                 dc_nest_inform = "jags/modelstringnested_class_inform.txt",
+                 dc_nest_inform_sep = "jags/modelstringnested_class_inform_separate.txt")
   
   params_monitor <- list(fixed = c('dep', 'pain'),
                          pooled = c('dep', 'pain'),
                          dc_nest = c('dep_class', 'pain_class', 'dep', 'pain', 'mu9_sd', 'mu10_sd'),
-                         dc_nest_inform = c('dep_class', 'pain_class', 'dep', 'pain', 'mu9_sd', 'mu10_sd'))
+                         dc_nest_inform = c('dep_class', 'pain_class', 'dep', 'pain', 'mu9_sd', 'mu10_sd'),
+                         dc_nest_inform_sep = c('dep_class', 'pain_class', 'dep', 'pain', 'mu_dep', 'mu_pain'))
   
   for(outcome in names(outcomes)){
     # Extract coefficients into matrix, each row is a trial
@@ -155,7 +188,7 @@ map(seq_along(res_rag), function (effect_number) {
     print(dim(prec_matrix))
   
     for(modeltype in names(modeltypes)){
-        # Run Jags Model    
+        # Run Jags Model 
         jags <- jags.model(modeltypes[modeltype],
                            data = list (Ndrug = myrag$Ndrug,
                                         Sdrug = myrag$Sdrug,

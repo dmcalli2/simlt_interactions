@@ -20,14 +20,23 @@ res <- res %>%
   sample_frac(0.25)
 rm(res_list, res_rag)
 
-dep <- map_dbl(res$con, ~ .x$coef["dep:alloc"])
-dep_covar <- map_dbl(res$con, ~ .x$vcov["dep:alloc", "dep:alloc"])
+coef <- map(res$con, ~ .x$coef)
+covar <- map(res$con, ~ .x$vcov)
 
-res$my_drug_n <- as.numeric(as_factor(res$my_drug))
-res$study_id_n <- as.numeric(as_factor(as.character(res$study_id)))
+## Convert to matrix and array
+covar_array <- array(NA, dim = c(11, 10, 10))
+coef_array <- array(NA, dim = c(11,10))
+for (j in 1:11){
+  covar_array[j, ,] <- covar[[j]]
+  coef_array[j,]    <- coef[[j]] 
+}
+dim(coef_array)
+dim(covar_array)
 
+my_drug_n <- as.numeric(as_factor(res$my_drug))
+study_id_n <- as.numeric(as_factor(as.character(res$study_id)))
 
-## Select a sinlg set of coefficients and variance covariance
+## Select a single set of coefficients and variance covariance
 a <- res$con[[1]]$coef
 b <- res$con[[1]]$vcov
 ```
@@ -39,19 +48,24 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 ```
 
-# Run example model
+# Run example model, simplest
 ```{r}
-mydata <- list(n_coef = 10,
-               y = a, 
-               sigma = b)
-
-fit <- stan(file = 'simplest.stan', data = mydata, 
-            iter = 1000, chains = 4)
+# mydata <- list(n_coef = 10,
+#                y = a, 
+#                sigma = b)
+# 
+# fit <- stan(file = 'simplest.stan', data = mydata, 
+#             iter = 1000, chains = 4)
 ```
 
 
-# Look at results
 ```{r}
-plot(fit)
+mydata <- list(n_coef = 10,
+               n_studies = 11, # number of studies
+               y = coef_array, 
+               sigma = covar_array)
+
+fit <- stan(file = 'nested.stan', data = mydata, 
+            iter = 10, chains = 1)
 ```
 

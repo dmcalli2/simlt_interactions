@@ -1,0 +1,57 @@
+---
+title: "Stan model"
+output: html_notebook
+---
+Stan version of model
+
+# Read in data
+
+```{r}
+library(tidyverse)
+library(forcats)
+
+drugs_select <- "Airways"
+source('02_arrange_data_arrays.R') 
+
+## Select the first simulation
+res <- res_list[[1]]
+res <- res %>% 
+  filter(drug_group_allocation == drugs_select) %>% 
+  sample_frac(0.25)
+rm(res_list, res_rag)
+
+dep <- map_dbl(res$con, ~ .x$coef["dep:alloc"])
+dep_covar <- map_dbl(res$con, ~ .x$vcov["dep:alloc", "dep:alloc"])
+
+res$my_drug_n <- as.numeric(as_factor(res$my_drug))
+res$study_id_n <- as.numeric(as_factor(as.character(res$study_id)))
+
+
+## Select a sinlg set of coefficients and variance covariance
+a <- res$con[[1]]$coef
+b <- res$con[[1]]$vcov
+```
+
+## Set-up stan
+```{r}
+library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+```
+
+# Run example model
+```{r}
+mydata <- list(n_coef = 10,
+               y = a, 
+               sigma = b)
+
+fit <- stan(file = 'simplest.stan', data = mydata, 
+            iter = 1000, chains = 4)
+```
+
+
+# Look at results
+```{r}
+plot(fit)
+```
+

@@ -4,13 +4,14 @@ author: "David McAllister"
 date: "24 May 2017"
 output: html_document
 params:
-   effect_number: 4
+   effect_number: 1
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, root.dir = rprojroot::find_rstudio_root_file())
 library(tidyverse)
 library(purrr)
+library(stringr)
 effect_number <- params$effect_number
 ```
 
@@ -22,7 +23,7 @@ The trials for this analysis are as follows.
 
 ```{r, fig.cap = "Trials"}
 readRDS("scratch_data/simulated_data1.Rds") %>% 
-  filter(drug_group_allocation == "Antidiabetic") %>%
+  filter(drug_group_allocation == "Airways") %>%
   group_by(my_drug, my_condition) %>%
   summarise(n = length(enrollment), participants = sum(enrollment)) %>% 
   knitr::kable()

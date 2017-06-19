@@ -1,6 +1,6 @@
 ## 04_nested_models.R
 
-drugs_select <- "Antidiabetic"
+drugs_select <- "Airways"
 source('02_arrange_data_arrays.R') 
 
 library(rjags)
@@ -50,8 +50,8 @@ model{
   }# end drug class
       dep  ~ dnorm(0, 0.0001)           # mean dep:alloc
       pain ~ dnorm(0, 0.0001)           # mean pain:alloc
-      mu9_sd  ~ dnorm(0,0.00001)T(0,)      # sd dep:alloc
-      mu10_sd ~ dnorm(0,0.00001)T(0,)      # sd pain:alloc
+      mu9_sd  ~ dnorm(0,0.001)T(0,)      # sd dep:alloc
+      mu10_sd ~ dnorm(0,0.001)T(0,)      # sd pain:alloc
       mu9_prec <- 1/mu9_sd^2   # prec dep:alloc
       mu10_prec <- 1/mu10_sd^2 # prec pain:alloc
 }# model
@@ -105,8 +105,8 @@ model{
  # Priors for each drug class
       dep_class[Ddrug]  ~ dnorm(dep, 0.25)           # mean dep:alloc
       pain_class[Ddrug] ~ dnorm(pain, 0.25)           # mean pain:alloc
-      mu9_sd[Ddrug]  ~ dnorm(0,0.00001)T(0,)      # sd dep:alloc
-      mu10_sd[Ddrug] ~ dnorm(0,0.00001)T(0,)      # sd pain:alloc
+      mu9_sd[Ddrug]  ~ dnorm(0,0.001)T(0,)      # sd dep:alloc
+      mu10_sd[Ddrug] ~ dnorm(0,0.001)T(0,)      # sd pain:alloc
       mu9_prec[Ddrug] <- 1/mu9_sd[Ddrug]^2   # prec dep:alloc
       mu10_prec[Ddrug] <- 1/mu10_sd[Ddrug]^2 # prec pain:alloc
   }# end drug class

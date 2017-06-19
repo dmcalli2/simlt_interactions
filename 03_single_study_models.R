@@ -133,3 +133,10 @@ LINE.out <- coda.samples(jags,
 summary(LINE.out)
 dep
 pain
+
+## Run with INLA
+library(INLA)
+
+myform <- dep ~  1
+mod1 <- inla(myform, family = "gaussian", data = data.frame(dep))
+summary(mod1)

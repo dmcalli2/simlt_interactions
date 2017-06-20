@@ -16,17 +16,19 @@ source('02_arrange_data_arrays.R')
 ## Select the first simulation
 res <- res_list[[1]]
 res <- res %>% 
-  filter(drug_group_allocation == drugs_select) %>% 
-  sample_frac(0.25)
+  filter(drug_group_allocation == drugs_select)
 rm(res_list, res_rag)
 
 coef <- map(res$con, ~ .x$coef)
 covar <- map(res$con, ~ .x$vcov)
 
+
+n_studies <- nrow(res)
+
 ## Convert to matrix and array
-covar_array <- array(NA, dim = c(11, 10, 10))
-coef_array <- array(NA, dim = c(11,10))
-for (j in 1:11){
+covar_array <- array(NA, dim = c(n_studies, 10, 10))
+coef_array <- array(NA, dim = c(n_studies,10))
+for (j in 1:n_studies){
   covar_array[j, ,] <- covar[[j]]
   coef_array[j,]    <- coef[[j]] 
 }
@@ -61,11 +63,16 @@ options(mc.cores = parallel::detectCores())
 
 ```{r}
 mydata <- list(n_coef = 10,
-               n_studies = 11, # number of studies
+               n_studies = n_studies, # number of studies
                y = coef_array, 
                sigma = covar_array)
 
 fit <- stan(file = 'nested.stan', data = mydata, 
-            iter = 10, chains = 1)
+            iter = 1000, chains = 4)
+```
+
+```{r}
+shinystan::launch_shinystan(fit)
+ 
 ```
 

@@ -1,7 +1,7 @@
 // saved as simplest.stan
 data {
-  int n_coef;
-  int n_studies;
+  int <lower = 1> n_coef;
+  int <lower = 1> n_studies;
   vector [n_coef] y[n_studies] ; // estimated coefficients, for each study
   cov_matrix [n_coef] sigma[n_studies]; // covariance matrix for each study
 }
@@ -9,7 +9,11 @@ transformed data{
 }
 parameters {
   vector [n_coef] mu[n_studies]; 
-   
+  real mu9;
+  real mu10;
+  real <lower = 0> mu9_var;
+  real <lower = 0> mu10_var;
+
 }
 transformed parameters {
   print(n_coef)
@@ -17,14 +21,17 @@ transformed parameters {
 }
 model {
  for(j in 1:n_studies){
-      y [j,]~ multi_normal(mu[j,], sigma[j,,]);
- //   for (i in 1:8){
- //    mu[i,j] ~ normal(0,5);
- //   }
- //   mu[9, j] ~ normal(mu9, 6);
- //   mu[10, j] ~ normal(mu10, 6);
- // }
- // mu9 ~ normal(0,1)
- // mu10 ~ normal(0,1)
+    y [j,]~ multi_normal(mu[j,], sigma[j,,]);
+    mu[j, 1] ~ normal(0, 5);  // intercept - study specific
+    for (i in 2:8){ // next 7 coefficients, not intercept - study specific
+      mu[j,i] ~ normal(0, 1);
+   }
+   mu[j, 9] ~ normal(mu9, mu9_var);  // one shared estimate for every study - dep
+   mu[j, 10] ~ normal(mu10, mu10_var); // one shared estimate for every study - pain
  }
+ mu9 ~ normal(0, 1); // dep
+ mu10 ~ normal(0, 1); // pain
+ mu9_var ~ cauchy(0, 5); // between study variance in depression:tx interaction
+ mu10_var ~ cauchy(0, 5); // as above for pain:tx interaction
 }
+

@@ -3,10 +3,12 @@
 drugs_select <- "Airways"
 source('02_arrange_data_arrays.R') 
 
-library(rjags)
+library(runjags)
 #load.module('glm')
 library(tidyverse)
 library(stringr)
+
+system.time({
 
 #### Model with study only, fixed ----
 modelstring_fixed <- "
@@ -95,7 +97,7 @@ model{
       for(Dstudy in Scondition[Dcondition]:(Scondition[Dcondition+1]-1)){
         coef[, Dstudy] ~ dmnorm(mu[,Dstudy], prec_matrix[, , Dstudy])
         for(i in 1:Ncoef) { # 8 independent priors for first 8 coefficients
-        mu[i, Dstudy] ~ dnorm(0, 0.0001)
+        mu[i, Dstudy] ~ dnorm(0, 0.1)
         }
         mu[9, Dstudy]  ~ dnorm(dep_class[Ddrug],  mu9_prec[Ddrug])
         mu[10, Dstudy] ~ dnorm(pain_class[Ddrug], mu10_prec[Ddrug])
@@ -105,8 +107,8 @@ model{
  # Priors for each drug class
       dep_class[Ddrug]  ~ dnorm(dep, 0.25)           # mean dep:alloc
       pain_class[Ddrug] ~ dnorm(pain, 0.25)           # mean pain:alloc
-      mu9_sd[Ddrug]  ~ dnorm(0,0.001)T(0,)      # sd dep:alloc
-      mu10_sd[Ddrug] ~ dnorm(0,0.001)T(0,)      # sd pain:alloc
+      mu9_sd[Ddrug]  ~ dnorm(0,0.1)T(0,)      # sd dep:alloc
+      mu10_sd[Ddrug] ~ dnorm(0,0.1)T(0,)      # sd pain:alloc
       mu9_prec[Ddrug] <- 1/mu9_sd[Ddrug]^2   # prec dep:alloc
       mu10_prec[Ddrug] <- 1/mu10_sd[Ddrug]^2 # prec pain:alloc
   }# end drug class
@@ -187,7 +189,9 @@ map(seq_along(res_rag), function (effect_number) {
     prec_matrix <- round(prec_matrix, 3)
     print(dim(prec_matrix))
   
-    for(modeltype in names(modeltypes)){
+    #for(modeltype in names(modeltypes)){
+    for(modeltype in "dc_nest_inform"){
+      
         # Run Jags Model 
         jags <- jags.model(modeltypes[modeltype],
                            data = list (Ndrug = myrag$Ndrug,
@@ -212,4 +216,5 @@ map(seq_along(res_rag), function (effect_number) {
         saveRDS(diag, file = paste0("mcmc_chains/", outcome, "_", modeltype, "_effect", effect_number, ".Rds"))
     } ## End of models loop
   } ## End of outcomes loop
+})
 })

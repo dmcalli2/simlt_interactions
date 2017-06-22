@@ -5,7 +5,7 @@
 sim_data <- readRDS(file = "scratch_data/simulated_data1.Rds")
 
 library(tidyverse)
-library(rjags)
+library(runjags)
 # load.module('glm')
 library(stringr)
 
@@ -39,8 +39,8 @@ Matrix::isSymmetric(a)
 matrixcalc::is.positive.definite(a %>%  round(3))
 
 # Run model for a single study
-study_choose <- sample(seq_along(sim_data$study_id), 1)
-print(study_choose)
+study_choose <- 1
+
 jags <- jags.model('jags/simplemodelstring.txt',
                    data = list (coef = sim_data$con[[study_choose]]$coef,
                                 vcov_prec = a,
@@ -64,79 +64,60 @@ CmprCoef()
 
 #### Attempt to recover coefficients for a single study, use actual precision matrix ----
 # Run model for actual vcov
-jags <- jags.model('jags/simplemodelstring.txt',
-                   data = list (coef = sim_data$con[[study_choose]]$coef,
-                                # Note round precision matrix to make sure symmetrical
-                                vcov_prec = round(sim_data$con[[study_choose]]$prec_matrix,3),
-                                Ncoef = 10
-                   ),
-                   n.chains = 2,
-                   n.adapt = 1000)
-data(LINE)
-LINE$recompile()
-LINE.out <- coda.samples(jags,
-                         c('mu'),
-                         5000)
-CmprCoef()
-gelman.diag(LINE.out)
+res <- vector(length = nrow(sim_data), mode = "list")
+for (study_choose in seq_along(sim_data$study_id)){
+  print(study_choose)
+  jags <- autorun.jags('jags/simplemodelstring.txt',
+                     data = list (coef = sim_data$con[[study_choose]]$coef,
+                                  # Note round precision matrix to make sure symmetrical
+                                  vcov_prec = round(sim_data$con[[study_choose]]$prec_matrix,3),
+                                  Ncoef = 10
+                     ),
+                      n.chains = 2,
+                     adapt = 1000,
+                     startsample = 5000,
+                   monitor = "mu")
+  summary(jags)
 
-gelman.plot(LINE.out, ylim = c(0.9, 1.1), ask = FALSE)
-pairs(window(LINE.out, start = 1000, end = 1200) %>% as.matrix(),
-       labels = names(sim_data$con[[study_choose]]$coef))
+  ## Recovers coefficients
+  
+  ## Runmodel with coefficients and variance estimates independently rather than part of a nultivariate normal
+  
+  separatemodelstring <- "
+  model{
+    dep  ~ dnorm(mu_dep, dep_prec)
+    pain ~ dnorm(mu_pain, pain_prec)
+    mu_dep  ~ dnorm(0, 0.0001)
+    mu_pain ~ dnorm(0, 0.0001)
+  }# model
+  "
+  
+  vcov_prec <- round(sim_data$con[[study_choose]]$prec_matrix,3)
+  dep_prec  <- vcov_prec["dep:alloc", "dep:alloc"]
+  pain_prec <- vcov_prec["pain:alloc", "pain:alloc"]
+  dep  <- sim_data$con[[study_choose]]$coef["dep:alloc"]
+  pain <- sim_data$con[[study_choose]]$coef["pain:alloc"]
+  
+  #Write model to text file
+  writeLines(separatemodelstring, con= "jags/sepmodelstring.txt")
+  
+  jags_sep <- autorun.jags('jags/sepmodelstring.txt',
+                     data = list (dep = dep,
+                                  dep_prec = dep_prec,
+                                  pain = pain,
+                                  pain_prec = pain_prec),
+                     n.chains = 2,
+                     startsample = 5000,
+                     monitor = c('mu_dep', 'mu_pain'),
+                     modules = "glm")
+   summary(jags_sep)
+  
+  ## Compare single versus separate multiple times
+  res[[study_choose]] <- (summary(jags)[c("mu[9]", "mu[10]"),] - summary(jags_sep))
+}
+saveRDS(res, file = "model_summaries/compare_separate_multivariate_models.Rds")
 
-# Model converged by 5000
-update(jags, 5000)
-data(LINE)
-LINE$recompile()
-LINE.out <- coda.samples(jags,
-                         c('mu'),
-                         20000)
-CmprCoef()
-print(study_choose)
-print(sim_data$enrollment[study_choose])
-## Recovers coefficients
 
-
-## Runmodel with coefficients and variance estimates independently rather than part of a nultivariate normal
-
-separatemodelstring <- "
-model{
-  dep  ~ dnorm(mu_dep, dep_prec)
-  pain ~ dnorm(mu_pain, pain_prec)
-  mu_dep  ~ dnorm(0, 0.0001)
-  mu_pain ~ dnorm(0, 0.0001)
-}# model
-"
-
-vcov_prec <- round(sim_data$con[[study_choose]]$prec_matrix,3)
-dep_prec  <- vcov_prec["dep:alloc", "dep:alloc"]
-pain_prec <- vcov_prec["pain:alloc", "pain:alloc"]
-dep  <- sim_data$con[[study_choose]]$coef["dep:alloc"]
-pain <- sim_data$con[[study_choose]]$coef["pain:alloc"]
-
-#Write model to text file
-writeLines(separatemodelstring, con= "jags/sepmodelstring.txt")
-
-jags <- jags.model('jags/sepmodelstring.txt',
-                   data = list (dep = dep,
-                                dep_prec = dep_prec,
-                                pain = pain,
-                                pain_prec = pain_prec),
-                   n.chains = 2,
-                   n.adapt = 1000)
-data(LINE)
-LINE$recompile()
-update(jags, 10000)
-LINE.out <- coda.samples(jags,
-                         c('mu_dep', 'mu_pain'),
-                         5000)
-summary(LINE.out)
-dep
-pain
-
-## Run with INLA
-library(INLA)
-
-myform <- dep ~  1
-mod1 <- inla(myform, family = "gaussian", data = data.frame(dep))
-summary(mod1)
+res2 <- do.call(rbind, res)
+res2 <- res2[, 1:6]
+any(res2 > 0.001)

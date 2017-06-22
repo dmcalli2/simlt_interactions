@@ -3,9 +3,11 @@
 library(coda)
 library(tidyverse)
 library(stringr)
+library(runjags)
 
-diagn <- readRDS("mcmc_chains/con_dc_nest_effect1.Rds")
+diagn <- readRDS("mcmc_chains/cat_dc_nest_inform_effect5.Rds")
 
+summary(diagn)
 
 ## Select random sample of mu nodes
 varnames <- varnames(diagn)
@@ -20,5 +22,5 @@ diagn_pairs <- map(diagn_pairs, function (x) x[4000:4100, ])
 diagn_pairs <- do.call(rbind, diagn_pairs)
 
 gelman.plot(diagn_sub, ylim = c(0.8,1.2), ask = FALSE)
-pairs(diagn_pairs)
+pairs(diagn_pairs[, 1:10])
 coda::acfplot(diagn_sub, ask = FALSE)

@@ -41,6 +41,10 @@ study_id_n <- as.numeric(as_factor(as.character(res$study_id)))
 ## Add drug class data
 drug_mtrx <- model.matrix(~ -1 + my_drug, res)
 
+## Select depression:treatment interaction
+coef_vect <- map_dbl(coef, ~ .x["dep:alloc"])
+var_vect <- map_dbl(covar, ~ .x["dep:alloc", "dep:alloc"])
+
 ```
 
 ## Set-up stan
@@ -61,17 +65,31 @@ options(mc.cores = parallel::detectCores())
 ```
 
 
+Failed attempt to run hierarchical model
 ```{r}
-mydata <- list(n_coef = 10,
-               n_studies = n_studies, # number of studies
-               y = coef_array, 
-               sigma = covar_array)
-
-# fit <- stan(file = 'nested.stan', data = mydata, 
-#             iter = 2000, chains = 4)
-fit <- stan(fit = fit, data = mydata, 
-            iter = 1800, chains = 4, 800)
+# mydata <- list(n_coef = 10,
+#                n_studies = n_studies, # number of studies
+#                y = coef_array, 
+#                sigma = covar_array)
+# 
+# # fit <- stan(file = 'nested.stan', data = mydata, 
+# #             iter = 2000, chains = 4)
+# fit <- stan(fit = fit, data = mydata, 
+#             iter = 1800, chains = 4, 800)
 ```
+
+Model estimating each interaction separately
+```{r}
+mydata <- list(J = n_studies,
+               y = coef_vect,
+               sigma = var_vect^0.5)
+
+fit <- stan(file = 'nested_separate.stan', data = mydata,
+            iter = 1000, chains = 4)
+# fit <- stan(fit = fit, data = mydata,
+#             iter = 2000, chains = 4)
+```
+
 
 ```{r}
 shinystan::launch_shinystan(fit)

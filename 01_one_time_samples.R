@@ -1,8 +1,10 @@
 # 11_simulate_data_base_r
 # Initially generates random samples from normal distribution. THese will be the same for each scenario
-# Next calcualtes overall group effect and variance for each component that will make-up the final scenarios
+# Next Calculates overall group effect and variance for each component that will make-up the final scenarios
 # eg (intercept, comorbidity effect, treatment allocation and interaction)
 
+
+############## 1 Make samples for all scenarios
 ## Make same answer each time
 set.seed(234)
 
@@ -68,7 +70,13 @@ varn_res <- lapply(names(varn_scen), function (param){ ## Loop through each para
 })
 names(varn_res) <- names(varn_scen)
 cumprod(sapply(varn_res, length) ) # gives us 10,000 scenarios alone
-# At this point using <50MB and got 16GB, just create them all
+# At this point using <50MB
+
+### Proportion with comorbidity
+cmrbd_prop <- 0.2
+cmrbd_prop_arm    <- cmrbd_prop*0.5
+cmrbd_prop_arm_no <- (1-cmrbd_prop)*0.5
+
 
 ## Create first comparison of interest, fix all other components to the middle value
 ## Set all the other effects to null (overall group, treatment allocation and comorbidity)
@@ -94,10 +102,6 @@ rm(t1_g1_no_intrcp)
 #### Linear predictor for each of the 4 groups (treated or not, allocated or not)
 n_trial <- 1000
 n_trial_arm <- n_trial * 0.5
-cmrbd_prop <- 0.2
-cmrbd_prop_arm    <- cmrbd_prop*0.5
-cmrbd_prop_arm_no <- (1-cmrbd_prop)*0.5
-
 cmrbd_arm_no <- round(n_trial_arm*(1-cmrbd_prop))
 cmrbd_arm    <- round(n_trial_arm*cmrbd_prop)
 

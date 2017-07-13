@@ -1,5 +1,9 @@
 ##08_analyse_with_INLA
 
+# Install INLA package (not available on CRAN)
+update.packages("INLA", repos="http://www.math.ntnu.no/inla/R/stable")
+
+
 library(tidyverse)
 library(INLA)
 library(forcats)
@@ -49,12 +53,29 @@ jags <- autorun.jags('jags/compare_inla.txt',
 summary(jags)
 
 ## Compare INLA
+##Model formula
+myform1 <- y ~ -1 + # no intercept
+  myclass + # single coefficient for overall treatment effect (prior for this specified below)
+  f(group, # Treatment in each trial (difference from overall treatment effect)
+    model = "iid", # Standard assumption as trials uncorrelated
+    hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 0.25)))) 
+      # Half-normal prior for difference between trials
 
-myform1 <- y ~ -1 + myclass + f(group, model = "iid", 
-                     hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 0.25))))
+## linear combinations
+lc_list <-map(1:12, function (x) {
+  vect <- rep(NA, 12)
+  vect[x] <- 1
+  inla.make.lincomb(myclass = 1, group = vect) 
+})
+lc_flat_list <- do.call(c, lc_list)
+names(lc_flat_list) <- paste0("lc", 1:12)
 
+## Run model and specify rest of priors, and that likelihood fixed
 mod1 <- inla(myform1, 
              data = my_data,
+              # Calculate linear combinations
+             lincomb = lc_flat_list,
+            # control.inla(list(lincomb.derived.only = FALSE)), # Make more acurate estimate still half
              # Likelihood distribution
              family = "gaussian",
              # Fix likelihood hyperpars as the data is fixed with known precision.
@@ -65,20 +86,27 @@ mod1 <- inla(myform1,
              control.fixed = list(mean = 0, prec = 0.25),
              # Optionally compute DIC
              verbose = FALSE)
-# mod1_inc_acc <- inla.hyperpar(mod1) # increase precision of hyperparameter doesn't do much
+#mod1_inc_acc <- inla.hyperpar(mod1) # increase precision of hyperparameter doesn't do much
 
 ### Compare JAGS and INLA model
 summary(mod1)
 summary(jags)["mu_mu",]
 
 # Compare trial-specific effects
-trial_inla_mean <- mod1$summary.random[[1]][,"mean"] + mod1$summary.fixed[,"mean"]
-trial_inla_sd <- mod1$summary.random[[1]][, "sd"]
+trial_inla_mean_manual  <- mod1$summary.random[[1]][,"mean"] + mod1$summary.fixed[,"mean"]
+trial_inla_mean_derived <- mod1$summary.lincomb.derived$mean
+trial_inla_sd <- mod1$summary.lincomb.derived$sd
+
 trial_jags_mean <- summary(jags)[1:12, c("Mean")]
 trial_jags_sd <- summary(jags)[1:12, c("SD")]
 
-round(cbind(trial_inla_mean, trial_jags_mean),3)
-round(cbind(trial_inla_sd, trial_jags_sd),3)
+round(cbind(trial_inla_mean_manual, trial_inla_mean_derived, trial_jags_mean),3)
+round(cbind(trial_inla_sd, trial_jags_sd),4)
+
+mod1$marginals.fixed %>%  as.data.frame () %>%  plot()
+re_mrg <- mod1$marginals.random[[1]]
+re_mrg <- map(re_mrg, as.data.frame)
+map(re_mrg, function (df) plot(df$x, df$y))
 
 ## Add drug-class effect
 modelcompareinla_nested <- "
@@ -91,7 +119,7 @@ model{
   class_effect[j]  ~ dnorm(group_effect, between_class_prec) ## drug-class effect
   }
   group_effect  ~ dnorm(0, 0.25) # overall effect
-  between_trial_sd ~ dnorm(0, 0.001)T(0,)
+  between_trial_sd ~ dnorm(0, 1)T(0,)
   between_trial_prec <- 1/between_trial_sd^2
 
   between_class_sd ~ dnorm(0, 0.01)T(0,)
@@ -125,15 +153,24 @@ jags_nested <- autorun.jags('jags/modelcompareinla_nested.txt',
 summary(jags_nested)
 
 ## INLA model
-system.time({
 myform_nested <- y ~ -1 + myclass + 
   f(group, model = "iid", 
-    hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 0.001)))) +
+    hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 1)))) +
   f(myclass_act, model = "iid", 
     hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 0.01))))
 
+# Set-up liner combinations
+dc1 <- inla.make.lincomb(myclass = 1, myclass_act = c(1, NA, NA, NA)) 
+dc2 <- inla.make.lincomb(myclass = 1, myclass_act = c(NA, 1, NA, NA)) 
+dc3 <- inla.make.lincomb(myclass = 1, myclass_act = c(NA, NA, 1, NA)) 
+dc_all <- c(dc1, dc2, dc3)
+names(dc_all) <- paste0("dc", 1:3)
+
+system.time({
 mod1_nested <- inla(myform_nested, 
              data = my_data,
+             # Add linear combinations to estimate drug-class
+             lincomb = dc_all,
              # Likelihood distribution
              family = "gaussian",
              # Fix likelihood hyperpars as the data is fixed with known precision.
@@ -151,24 +188,13 @@ summary(mod1_nested)
 summary(jags_nested)["group_effect", c("Mean", "SD")]
 
 # Compare drug-class specific effects
-class_inla_mean <- mod1_nested$summary.random$myclass_act[,"mean"] + 
+class_inla_mean_manual <- mod1_nested$summary.random$myclass_act[,"mean"] + 
   mod1_nested$summary.fixed[,"mean"]
-class_inla_sd <- mod1_nested$summary.random$myclass_act[, "sd"]
+class_inla_mean_derived <- mod1_nested$summary.lincomb.derived$mean
+class_inla_sd <- mod1_nested$summary.lincomb.derived$sd
 
 class_jags_mean <- summary(jags_nested)[13:15, c("Mean")]
 class_jags_sd <- summary(jags_nested)[13:15, c("SD")]
 
-round(cbind(class_inla_mean, class_jags_mean),3)
+round(cbind(class_inla_mean_manual, class_inla_mean_manual, class_jags_mean),3)
 round(cbind(class_inla_sd, class_jags_sd),3)
-
-
-# Compare trial specific effects
-trial_inla_mean <- mod1_nested$summary.random$group[,"mean"] + # trial effect
-  rep(mod1_nested$summary.random$myclass_act[,"mean"], each = 4) + # class effect
-  mod1_nested$summary.fixed[,"mean"] # group effect
-
-trial_jags_mean <- summary(jags_nested)[1:12, c("Mean")]
-trial_jags_sd <- summary(jags_nested)[1:12, c("SD")]
-
-round(cbind(trial_inla_mean, trial_jags_mean),3)
-

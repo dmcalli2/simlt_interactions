@@ -15,7 +15,7 @@ drug_classes <- 6 # maximum number of classes
 trials <- 10 # maximum number of trials per drug class
 
 # Loop through parameters to keep it manageable, even though sampling 4 times
-params <-  4 # intercept, treatment, 2 x comorbidities, 2 x interactions
+params <-  4 # intercept, treatment, 1 x comorbidities, 1 x interactions
 
 param_smpls <- lapply(1:params, function (x) {
   ### Create array for classes, note 10 identical slices
@@ -71,3 +71,14 @@ varn_res <- lapply(names(varn_scen), function (param){ ## Loop through each para
 names(varn_res) <- names(varn_scen)
 cumprod(sapply(varn_res, length) ) # gives us 10,000 scenarios alone
 # At this point using <50MB
+rm(list = c("param_smpls", "params"))
+
+ # Reshapes arrays to a vector, where each array contributes one element in turn
+  # The vector goes a1, b1, c1, d1, a2, b2, c2, d2, etc
+  # First each array is collapsed, it goes columns, rows, slices etc
+  # Then a matrix is created, which is again collapsed column wise
+  # Final ordering is dataset 1:1000 (rows), for class 1(cols), for trial 1(slices),
+  # then dataset 1:1000 for class 2, trial 1
+  # then dataset 1:1000 for class 3, trial 1  etc
+varn_res <- lapply(varn_res, function (x) { # apply to each parameter
+  lapply(x, c)}) # apply to each combination

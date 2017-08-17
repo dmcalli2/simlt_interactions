@@ -1,5 +1,5 @@
 # 02_combine_samples_selected_scenarios
-# setwd("fship_sim")
+setwd("fship_sim")
 
 source("01_one_time_samples.R")
 
@@ -14,14 +14,12 @@ cmbns <- c(sapply(varn_scen, nrow))
 # Create empty matrix to hold values
 mtrx_res <- array(NA, dim = c(cmbns, datasets*drug_classes*trials*4)) # 4 is for treatment arms
 
-system.time({
-for(me_i in 1:2){ # nrow(main_scen)
+for(me_i in 1:nrow(main_scen)){ # note skip first one as already run
   main_eff <- main_scen[me_i, , drop = FALSE]
   for(cpt_i in 1:cmbns["intrcpt"]){
     for(com_i in 1:cmbns["com1"]){
         for(alloc_i in 1:cmbns["alloc"]){
             for(rct_i in 1:cmbns["intrct1"]){
-              browser()
             t0_g0 <- varn_res$intrcpt[[cpt_i]]                            # No comorbidity, no tx
             t1_g0 <- t0_g0 + main_eff$alloc + varn_res$alloc[[alloc_i]]   # No comorbidity, yes tx
             t0_g1 <- t0_g0 + main_eff$com1  + varn_res$com1[[com_i]]      # Comorbidity, no tx
@@ -38,8 +36,9 @@ for(me_i in 1:2){ # nrow(main_scen)
   }
 saveRDS(mtrx_res, file = paste0("scratch_data/mean_effects", me_i, ".Rds"),
         compress = FALSE)
+rm(mtrx_res)
+gc()
       }
-})
 
 
                         

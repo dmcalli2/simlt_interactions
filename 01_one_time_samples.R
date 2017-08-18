@@ -34,6 +34,9 @@ param_smpls <- lapply(1:params, function (x) {
 })
 names(param_smpls) <- c("intrcpt", "alloc", "com1", "intrct1")
 
+# Make all samples positive
+param_smpls <- lapply(param_smpls, function(x) lapply(x, abs))
+
 ## A few seconds have all samples need for each trial, and it is only 4MB
 ## It is 72,000 samples from random normal distributions,
 ## some of which (the drug class ones) are repeated
@@ -82,3 +85,19 @@ rm(list = c("param_smpls", "params"))
   # then dataset 1:1000 for class 3, trial 1  etc
 varn_res <- lapply(varn_res, function (x) { # apply to each parameter
   lapply(x, c)}) # apply to each combination
+# 
+# ### Make labelling function 
+# MakeLabs <- function(datasets = 1000, drug_classes = 6, trials = 10){
+#   my_array <- array(NA, dim = c(datasets, drug_classes, trials))
+#   my_array_lbl <- my_array
+#   for (i in 1:datasets){
+#     for(j in 1:drug_classes){
+#       for(k in 1:trials){
+#         my_array_lbl[i,j,k] <- paste0("dataset", i, "_", "class", j, "_", "trial", k)
+#       }
+#     }
+#   }
+#   c(my_array_lbl)
+# }
+# 
+# my_df <- data.frame(lbls = MakeLabs(), res = varn_res$intrcpt[[1]] )

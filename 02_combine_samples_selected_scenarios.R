@@ -14,7 +14,7 @@ cmbns <- c(sapply(varn_scen, nrow))
 # Create empty matrix to hold values
 mtrx_res <- array(NA, dim = c(cmbns, datasets*drug_classes*trials*4)) # 4 is for treatment arms
 
-for(me_i in 1:nrow(main_scen)){ # note skip first one as already run
+for(me_i in 1:nrow(main_scen)){ # 
   main_eff <- main_scen[me_i, , drop = FALSE]
   for(cpt_i in 1:cmbns["intrcpt"]){
     for(com_i in 1:cmbns["com1"]){
@@ -35,8 +35,8 @@ for(me_i in 1:nrow(main_scen)){ # note skip first one as already run
     }
   }
 saveRDS(mtrx_res, file = paste0("scratch_data/mean_effects", me_i, ".Rds"),
-        compress = FALSE)
-rm(mtrx_res)
+        compress = TRUE)
+mtrx_res[] <- NA
 gc()
       }
 

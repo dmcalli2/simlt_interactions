@@ -23,7 +23,7 @@ main_scen <- expand.grid(
   allc = c(-0.2,-0.1, 0, 0.1, 0.2),
   actn = c(-0.2,-0.1, 0, 0.1, 0.2)
 )
-
+### Each simulation scenario, variation around the overall effect
 varn_scen <- list(cept = c(0.25, 0.5),
                      como = c(0.25, 0.5),
                      allc = c(0.05, 0.10, 0.15, 0.20, 0.25),
@@ -71,8 +71,8 @@ atc5 <- lapply(list(cept = c(0.25, 0.5),
                 }
 )
 
-## Combine variation around A10B effects into single estimate 
-# from trial, drug and class (A10BA, A10BB etc)
+## Combine variation around A10B effects for intercept, comorbidity, allocation and itneraction
+## into single estimate from trial, drug and class (A10BA, A10BB etc)
 diabetes_final_smpls <- diabetes_final[rep(seq_along(diabetes_final$nct_id),1000),
                                        c("nct_id", "drug", "atc_5") ]
 CombineVarn <- function(component = "cept", choice = list(atc5 = "0.25",
@@ -93,50 +93,41 @@ diabetes_final_smpls$actn <- CombineVarn("actn", list(atc5 = "0.05",
                                                             drug = "0.1",
                                                             trial = "0.15"))
 
-## Convert effects into marginal estimates of difference
-## from A10 effect (eg comoribdity = intercept + comorbidity) 
-diabetes_final_smpls_obs <- within(diabetes_final_smpls,{
-  cept <- cept
-  como <- cept + como
-  allc <- cept + allc
-  actn <- cept + como + actn
-})
-
-diabetes_final_smpls_obs2 <- within(diabetes_final_smpls, {
+## Add in wider group effect to difference around this to get each effect
+diabetes_final_smpls <- within(diabetes_final_smpls, {
   cept = cept + main_scen$cept[1]
   como = como + main_scen$como[1]
   allc = allc + main_scen$allc[1]
   actn = actn + main_scen$actn[1]
 })
 
-
-main_scen_obs <- within(main_scen, {
-  cept <- cept
-  como <- cept+como
-  allc <- cept+allc
-  actn <- cept + como + actn
+############## DO NEED TO ADD TOGETHER EFFECTS TO GET OBSERVED GROUP MEANS!!!
+diabetes_final_smpls_obs <- within(diabetes_final_smpls, {
+  cept = cept 
+  como = cept + como
+  allc = cept + allc
+  actn = actn + como + allc - cept
 })
-
-diabetes_final_smpls_obs2 <- within(diabetes_final_smpls2, {
-  cept = cept + main_scen$cept[1]
-  como = como + main_scen$como[1]
-  allc = allc + main_scen$allc[1]
-  actn = actn + main_scen$actn[1]
-})
-
 
 ### Calcualate error terms based on SD
 # Standardised sd is approx 1 for change in HbA1c
 comorbidity_prev <- 0.2
 sd <- 1
-diabetes_final_se <- within(diabetes_final, {
-  ncomo_se = sd/ ((1-comorbidity_prev) * diabetes_final$n_per_grp)^0.5
-  ycomo_se = sd/ (   comorbidity_prev  * diabetes_final$n_per_grp)^0.5
-})
+ncomo_se = sd/ ((1-comorbidity_prev) * diabetes_final$n_per_grp)^0.5
+ycomo_se = sd/ (   comorbidity_prev  * diabetes_final$n_per_grp)^0.5
 
-diabetes_final_se$inter_se <- with(diabetes_final_se,{
-  como_se^2 + ycomo_se^2
-})
+names(ncomo_se) <- diabetes_final$nct_id
+names(ycomo_se) <- diabetes_final$nct_id
 
+ncomo_prec <- 1/ncomo_se^2
+ycomo_prec <- 1/ycomo_se^2
 
+## Add these into both dataframes
+diabetes_final$ncomo_se <- ncomo_se
+diabetes_final$ycomo_se <- ycomo_se
+
+diabetes_final_smpls_obs$ncomo_se   <- ncomo_se[diabetes_final_smpls_obs$nct_id]
+diabetes_final_smpls_obs$ycomo_se   <- ycomo_se[diabetes_final_smpls_obs$nct_id]
+diabetes_final_smpls_obs$ncomo_prec <- ncomo_prec[diabetes_final_smpls_obs$nct_id]
+diabetes_final_smpls_obs$ycomo_prec <- ycomo_prec[diabetes_final_smpls_obs$nct_id]
 

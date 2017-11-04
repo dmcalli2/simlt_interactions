@@ -13,6 +13,18 @@ mydf$est <- rnorm(4)/4
 mydf$sd <- abs(rnorm(4))
 mydf$n <- c(50, 10, 50, 10)
 mydf$se <- mydf$sd/mydf$n^0.5
+mydf_sim <- mydf
+
+## Actual data
+reg1 <- diabetes_final_smpls_obs[1, c("cept", "como", "allc", "actn")]
+se <- diabetes_final_smpls_obs[1, c("ncomo_se", "ycomo_se", "ncomo_se", "ycomo_se")]
+prec <- diabetes_final_smpls_obs[1, c("ncomo_prec", "ycomo_prec", "ncomo_prec", "ycomo_prec")]
+mydf <- data.frame(est = as.vector(t(reg1)),
+                   se = as.vector(t(se)),
+                   prec = as.vector(t(prec)))
+mydf$com <- c(0, 1, 0, 1)
+mydf$alloc <- c(0, 0, 1, 1)
+mydf <- mydf[c(1,3,2,4),]
 
 # RUn RMA model
 mod1_rma <- rma(yi = est, vi = se^2, mods = ~ alloc*com, method = "FE", data = mydf)
@@ -38,9 +50,27 @@ mydf$se_manual <- c(mydf$se[1], alloc_se, com_se, inter_se)
 ## Examine result
 mydf
 
+## Standard errors for all 161 trials * 1000 samples
+diabetes_final$inter_calc <- (
+  diabetes_final$ncomo_se^2 +
+  diabetes_final$ycomo_se^2 +
+  diabetes_final$ncomo_se^2 +
+  diabetes_final$ycomo_se^2)^0.5
+
+## Recover interaction
+## Demonstrates that only depends on SE (function of n and sd) and interaction
+## Don't need to worry about the rest of the variables so is a 
+## 3 DIMENSIONAL SIMULATION (trial, drug and class variation)
+diabetes_final_smpls_obs$inter_calc <- 
+  diabetes_final_smpls_obs$actn -
+  diabetes_final_smpls_obs$como -
+  diabetes_final_smpls_obs$allc +
+  diabetes_final_smpls_obs$cept
+check <- cbind(calc = diabetes_final_smpls_obs$inter_calc,
+               orig = diabetes_final_smpls$actn)
 
 #### For logistic regression, will need to fit the models
-# But can re-sue the same design matrix
+# But can re-use the same design matrix
 mydf <- expand.grid(alloc = 0:1, com = 0:1)
 dsgn <- model.matrix(~ mydf$alloc * mydf$com)
 

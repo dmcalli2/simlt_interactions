@@ -27,7 +27,8 @@ dep_prec <- map_dbl(res$con, ~ .x$prec_matrix["dep:alloc", "dep:alloc"])
 res$my_drug_n <- as.numeric(as_factor(res$my_drug))
 res$study_id_n <- as.numeric(as_factor(as.character(res$study_id)))
 
-my_data <- data.frame(y = dep, y_prec = dep_prec, group = res$study_id_n, myclass = 1, myclass_act = res$my_drug_n)
+my_data <- data.frame(y = dep, y_prec = dep_prec, group = res$study_id_n, 
+                      myclass = 1, myclass_act = res$my_drug_n)
 
 
 ## JAGS model

@@ -105,5 +105,7 @@ print(choose_scenario)
 }
 # 
 # 
-# fxd <- lapply(scenario, function(x) x$fixed)
-# fxd <- do.call(rbind, fxd)
+fxd <- lapply(scenario, function(x) x$fixed)
+fxd <- do.call(rbind, fxd)
+fxd <- as.data.frame(fxd)
+sapply(fxd, function(x) quantile(x, probs = c(0.025, 0.5, 0.975)))

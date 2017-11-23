@@ -55,4 +55,6 @@ plot1 <- ggplot(scenario_res2 %>%
   scale_x_discrete("Drug class") +
   scale_y_continuous("Effect estimate")
 plot1
-pdf(plot1, "effect0.1.pdf")
+pdf("effect0_1.pdf")
+plot1
+dev.off()

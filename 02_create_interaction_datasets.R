@@ -46,9 +46,9 @@ myform_nested2 <- y ~ -1 + myatc4 +
   f(trial, model = "iid", 
     hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 1)))) +
   f(mydrug, model = "iid", 
-    hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 0.01)))) +
+    hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 1)))) +
   f(myatc5, model = "iid", 
-    hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 0.01))))
+    hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 1))))
 
 ## Make part of model matrix which is identical for all iterations
 my_drug_n <- as.numeric(as.factor(diabetes_final$drug))
@@ -73,7 +73,7 @@ scenarios <- c("atc5_0.05_trial_0.05_drug_0.05",
 for (choose_scenario in scenarios) {
 print(choose_scenario)
 # Add in main effect to a chosen variation scenario
- diabetes$res <- res[, choose_scenario] + -0.2
+ diabetes$res <- res[, choose_scenario] + -0.1
 
 # Loop through each iteration
  scenario <- vector(length = 250, mode = "list")
@@ -105,7 +105,4 @@ print(choose_scenario)
 }
 # 
 # 
-fxd <- lapply(scenario, function(x) x$fixed)
-fxd <- do.call(rbind, fxd)
-fxd <- as.data.frame(fxd)
-sapply(fxd, function(x) quantile(x, probs = c(0.025, 0.5, 0.975)))
+

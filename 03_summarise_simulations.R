@@ -21,7 +21,7 @@ scenarios_names <- as.data.frame(scenarios_names)
 names(scenarios_names) <- c("atc5", "trial", "drug")
 
 scenario_res <- lapply(scenarios, function(each_scenario){
-  each_scenario <- readRDS(paste0("simulate_interactions/effect_0_point2_priors0point01/", each_scenario))
+  each_scenario <- readRDS(paste0("simulate_interactions/effect_0_point1_priors1/", each_scenario))
   fxd <- lapply(each_scenario, function(x) x$fixed)
   fxd <- do.call(rbind, fxd)
   fxd <- as.data.frame(fxd)
@@ -43,14 +43,16 @@ scenario_res2 <- scenario_res %>%
   gather(key = "var", value = "value", -atc5, -drug, -trial, -qs) %>% 
   spread(key = qs, value = value)
 
+pd <- position_dodge(width = 0.4)
 plot1 <- ggplot(scenario_res2 %>% 
-                  filter(var == "0.5quant") %>% 
+                  filter(var %in% c("0.025quant", "0.5quant", "0.975quant")) %>% 
                   mutate(trial = paste0("Trial ", trial),
                          drug = paste0("Drug ", drug)),
-                aes(x = factor(atc5), y = q50, ymin = q2.5, ymax = q97.5)) +
-  geom_errorbar() +
-  geom_point() +
+                aes(x = factor(atc5), y = q50, ymin = q2.5, ymax = q97.5, colour = var)) +
+  geom_errorbar(position = pd) +
+  geom_point(position = pd) +
   facet_grid(trial ~ drug) +
   scale_x_discrete("Drug class") +
   scale_y_continuous("Effect estimate")
 plot1
+pdf(plot1, "effect0.1.pdf")

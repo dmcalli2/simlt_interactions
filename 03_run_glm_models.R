@@ -4,7 +4,7 @@ library(metafor)
 
 
 # INITAL code demonstrates for LM model summations of estimates and standard errors will give effects
-# If reshape data to wide (4 treatmetn comparisons) these are vectorised and will be very fast
+# If reshape data to wide (4 treatment comparisons) these are vectorised and will be very fast
 # Will need to do so AFTER applying N's and SDs as these differ by trial
 
 # Simulate data

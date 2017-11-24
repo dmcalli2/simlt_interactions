@@ -1,26 +1,26 @@
 # 02_create_interaction_datasets.R
 library(INLA)
-inputty <- FALSE
 
 ## Read in diabetes trials
-if(inputty == TRUE){
-  setwd("simuln")
-  load("data/data_for_simulation.Rdata")
-} else {
-  load("../Trial_identify/clinical_trials_august_2017/scratch_data/data_for_simulation.Rdata")
-
-}
+load("../Trial_identify/clinical_trials_august_2017/scratch_data/data_for_simulation.Rdata")
 
 # Create effect estimates interactions with variation at trial, drug and class level
 # Read in dataset with different interactions
 # Each variable is for a different component
 diabetes <- readRDS("scratch_data/interactn_opts.Rds")
+diabetes <- as.data.frame(diabetes)
 
 # extract vectors describing trial, drug and atc5 level interactions
 atc5s  <- names(diabetes)[substr(names(diabetes), 1, 5) == "atc5_"]
 trials <- names(diabetes)[substr(names(diabetes), 1, 6) == "trial_"]
 drugs <- names(diabetes)[substr(names(diabetes), 1, 5) == "drug_"]
 
+# Choose fewer options to reduce number need to run
+atc5s <- atc5s[c(1,3,5)]
+trials <- trials[c(1,3,5)]
+drugs <- drugs[c(1,3,5)]
+
+# Create matrix of combinations
 count <- 0
 res <- matrix(nrow = nrow(diabetes), ncol = length(atc5s) * length(trials) * length(drugs))
 res_names <- vector(length = length(atc5s) * length(trials) * length(drugs))
@@ -29,7 +29,7 @@ for (i in atc5s){
   for(j in trials){
     for(k in drugs){
       count <- count + 1
-    res[, count] <-
+    res[, count] <- 
        diabetes[ , i] +
        diabetes[ , j] +
        diabetes[ , k]
@@ -78,22 +78,23 @@ my_data <- data.frame(y_prec = inter_prec,
                       mydrug = my_drug_n)
 
 
-# 
+## Select only diabetes variables need for each analysis
+diabetes <- diabetes [ , c("atc_5", "drug", "nct_id", "iteration")]
 
 save(my_data, myform_nested2, diabetes, res, file = "data/for_inla.Rdata")
 
 ## AS part of prepare INLA write unix scripts
-scenarios <- c("atc5_0.05_trial_0.05_drug_0.05",
-                  "atc5_0.1_trial_0.1_drug_0.1",
-                  "atc5_0.25_trial_0.25_drug_0.25",
-                  "atc5_0.1_trial_0.1_drug_0.25",
-                  "atc5_0.1_trial_0.25_drug_0.1",
-                  "atc5_0.25_trial_0.1_drug_0.1")
-for(scenario in scenarios) {
+# scenarios <- c("atc5_0.05_trial_0.05_drug_0.05",
+#                   "atc5_0.1_trial_0.1_drug_0.1",
+#                   "atc5_0.25_trial_0.25_drug_0.25",
+#                   "atc5_0.1_trial_0.1_drug_0.25",
+#                   "atc5_0.1_trial_0.25_drug_0.1",
+#                   "atc5_0.25_trial_0.1_drug_0.1")
+for(scenario in res_names) {
   con <- file(description =  paste0("unix_scripts/",scenario, ".sh"), open = "wb")
   top <- c("#!/bin/bash",
           "#PBS -l nodes=1:ppn=1:centos6",
-          "#PBS -l cput=10:00:00")
+          "#PBS -l cput=2:00:00")
   
   act <- paste("/usr/bin/Rscript simuln/02b_run_inla_models.R",
                scenario,
@@ -105,7 +106,7 @@ for(scenario in scenarios) {
 # CAn run up to 50 at a time on short list
 # all take about 30 mins
 con <- file(description =  "unix_scripts/metascript.sh", open = "wb")
-metascript <- paste0("qsub simuln/", scenarios, ".sh")
+metascript <- paste0("qsub simuln/", res_names, ".sh")
 readr::write_lines(metascript, con)
 close(con)
 

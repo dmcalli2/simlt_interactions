@@ -80,3 +80,35 @@ my_data <- data.frame(y_prec = inter_prec,
 
 # 
 
+save(my_data, myform_nested2, diabetes, res, file = "data/for_inla.Rdata")
+
+## AS part of prepare INLA write unix scripts
+scenarios <- c("atc5_0.05_trial_0.05_drug_0.05",
+                  "atc5_0.1_trial_0.1_drug_0.1",
+                  "atc5_0.25_trial_0.25_drug_0.25",
+                  "atc5_0.1_trial_0.1_drug_0.25",
+                  "atc5_0.1_trial_0.25_drug_0.1",
+                  "atc5_0.25_trial_0.1_drug_0.1")
+for(scenario in scenarios) {
+  con <- file(description =  paste0("unix_scripts/",scenario, ".sh"), open = "wb")
+  top <- c("#!/bin/bash",
+          "#PBS -l nodes=1:ppn=1:centos6",
+          "#PBS -l cput=10:00:00")
+  
+  act <- paste("/usr/bin/Rscript simuln/02b_run_inla_models.R",
+               scenario,
+                "> /export/home/dma24j/run.output", sep = " ")
+  readr::write_lines(c(top, act), con)
+  close(con)
+}
+# Metascript to run scripts
+# CAn run up to 50 at a time on short list
+# all take about 30 mins
+con <- file(description =  "unix_scripts/metascript.sh", open = "wb")
+metascript <- paste0("qsub simuln/", scenarios, ".sh")
+readr::write_lines(metascript, con)
+close(con)
+
+## Metascript to run other scripts
+
+

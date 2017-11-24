@@ -32,24 +32,17 @@ varn_scen <- list(cept = c(0.25, 0.5),
 
 # Simulate variation around wider group (A10B) effect at trial, drug and class level
 SampleVarn <- function(item, smpl_lvls, n_iter = 1000){
-
-  res <- lapply(smpl_lvls, function (x) {
-    my_mtrx <- matrix(nrow = n_iter, ncol = length(item))
-    for(j in seq_along(item)){
-      my_mtrx[, j] <- rnorm(n_iter, 0, x)
-    }
-    rownames(my_mtrx) <- 1:n_iter
-    colnames(my_mtrx) <- item
-    my_mtrx
-  })
-  names(res) <- smpl_lvls
-  res <- lapply(res, function(x) stack(as.data.frame(x)))
-  res_names <- lapply(res, function(x) x$ind)[[1]]
-  res <- do.call(cbind, lapply(res, function(x) x[, "values"]))
-  res <- as.data.frame(res)
-  res$item <- res_names
-  res
+  my_mtrx <- matrix(nrow = length(item) * n_iter,
+                    ncol = length(smpl_lvls))
+  
+  for(j in seq_along(smpl_lvls)){
+    my_mtrx[,j] <- rnorm(length(item) * n_iter, 0, smpl_lvls[j])
+  }
+  rownames(my_mtrx) <- rep(item, n_iter)
+  colnames(my_mtrx) <- smpl_lvls
+  my_mtrx
 }
+
 trial <- lapply(list(cept = c(0.25, 0.5),
                      como = c(0.25, 0.5),
                      allc = c(0.05, 0.10, 0.15, 0.20, 0.25),
@@ -79,17 +72,23 @@ atc5 <- lapply(list(cept = c(0.25, 0.5),
 
 ## Combine variation around A10B effects for intercept, comorbidity, allocation and itneraction
 ## into single estimate from trial, drug and class (A10BA, A10BB etc)
-ExtractFx <- function(filename, filename_label = filename){
-  x <- get(filename)
-  x <- x$actn
-  names(x)[!names(x) == "item"] <- paste(filename, 
-                                             names(x)[!names(x) == "item"], sep = "_")
-  names(x)[names(x)=="item"] <- filename_label
-  x
-}
-atc5 <- ExtractFx("atc5", "atc_5")
-drug <- ExtractFx("drug")
-trial <- ExtractFx("trial", "nct_id")
+atc5 <- atc5$actn
+atc5_names <- rownames(atc5)
+colnames(atc5) <- paste("atc5", colnames(atc5), sep = "_")
+atc5 <- as_tibble(atc5) %>%
+mutate(atc_5 = atc5_names)
+
+drug <- drug$actn
+drug_names <- rownames(drug)
+colnames(drug) <- paste("drug", colnames(drug), sep = "_")
+drug <- as_tibble(drug) %>%
+mutate(drug = drug_names)
+
+trial <- trial$actn
+trial_names <- rownames(trial)
+colnames(trial) <- paste("trial", colnames(trial), sep = "_")
+trial <- as_tibble(trial) %>%
+mutate(nct_id = trial_names)
 
 
 trial <- trial %>% 
@@ -115,46 +114,11 @@ actn <- bind_cols(atc5, trial, drug) %>%
 actn %>%
   select(iteration, atc_5, starts_with("atc5")) %>% 
   distinct() %>%
-  group_by(atc_5) %>% 
+  # Examine SD across classes for each iteration
+  group_by(iteration) %>% 
+  summarise_at(vars(starts_with("atc5")), sd) %>%
+  # Summarise results across all iterations
   summarise_at(vars(starts_with("atc5")), mean)
-
-atc5 %>%
-  mutate(iteration = rep(1:1000, 161)) %>% 
-  select(iteration, atc_5, starts_with("atc5")) %>% 
-  distinct() %>%
-  (function(x) {
-    print(nrow(x))
-    x
-  }) %>% 
-  group_by(atc_5) %>% 
-  summarise_at(vars(starts_with("atc5")), mean)
-
-## Fix the mean for a single ATC5-level class, choose J, so that it has a KNOWN
-## difference compared to the overall mean Make two versions, a no difference
-## and a large difference to see effects fo shrinkage
-## Note that he overall effect (at ATC4 level) which has not yet been added
-## First take unique value for each class for each iteration
-
-atc_5_names <- c("atc5_0.05", "atc5_0.1", "atc5_0.15", "atc5_0.2", "atc5_0.25")
-
-actn_one_fixed <- actn %>% 
-  filter(atc_5 == "A10BJ") %>% 
-  distinct(iteration, atc5_0.05, atc5_0.1, atc5_0.15, atc5_0.2, atc5_0.25) 
-
-## Rename to disitinguish from other classes
-names(actn_one_fixed)[-1] <- paste0("fx", atc_5_names)
-
-## Join BJ class to other dataframe
-actn_fixed <- actn %>% 
-  inner_join(actn_one_fixed)
-
-## Add fixed class effects
-actn_fixed[, paste(names(actn_one_fixed)[-1], "f_same")] <- map2(actn_fixed[, atc_5_names],
-                     actn_fixed[, names(actn_one_fixed)[-1]],
-                     ~ .x - .y)
-actn_fixed[, paste(names(actn_one_fixed)[-1], "f_diff")] <- map2(actn_fixed[, atc_5_names],
-                     actn_fixed[, names(actn_one_fixed)[-1]],
-                     ~ .x - .y - 0.2)
 
 saveRDS(actn, file = "scratch_data/interactn_opts.Rds")
 save(diabetes_final, file = "scratch_Data/interaction_opts_ordering.Rds")

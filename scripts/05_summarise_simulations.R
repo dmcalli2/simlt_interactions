@@ -3,65 +3,83 @@ library(tidyverse)
 library(stringr)
 library(ggplot2)
 
-# scenarios <- c("scenario_atc5_0.05_trial_0.05_drug_0.05.rds",
-#                "scenario_atc5_0.1_trial_0.1_drug_0.1.rds",
-#                "scenario_atc5_0.1_trial_0.1_drug_0.25.rds",
-#                "scenario_atc5_0.1_trial_0.25_drug_0.1.rds", 
-#                "scenario_atc5_0.25_trial_0.1_drug_0.1.rds",
-#                "scenario_atc5_0.25_trial_0.25_drug_0.25.rds")
-
-
-scen1 <- readRDS("unix_results/scenario_atc5_0.05_trial_0.05_drug_0.05.rds")
-scen2 <- readRDS("unix_results/scenario_atc5_0.25_trial_0.25_drug_0.25.rds")
-
+# Identify saved results
 scenarios <- list.files("unix_results/", patt = "scen")
 
-scenarios_names <- str_split_fixed( str_sub(scenarios, 1, -5), "_", n = 7)
-scenarios_names <- apply(scenarios_names[, c(3, 5, 7)], 2, as.double)
-scenarios_names <- as.data.frame(scenarios_names)
-names(scenarios_names) <- c("atc5", "trial", "drug")
+ScenarioNames <- function (scenarios) {
+  scenarios_names <- str_split_fixed( str_sub(scenarios, 1, -5), "_", n = 7)
+  scenarios_names <- apply(scenarios_names[, c(3, 5, 7)], 2, as.double)
+  scenarios_names <- as.data.frame(scenarios_names)
+  names(scenarios_names) <- c("atc5", "trial", "drug")
+  scenarios_names
+}
 
+scenarios_names <- ScenarioNames(scenarios)
+
+# read and convert to data frame for each scenario
 scenario_res <- lapply(scenarios, function(each_scenario){
-  each_scenario <- readRDS(paste0("unix_results/", each_scenario))
-  fxd <- lapply(each_scenario, function(x) x$fixed)
+  each_scenario <- readRDS(paste0("unix_results/", each_scenario))})
+
+scenario_res <- map(scenario_res, function (scen){
+  fxd <- map(scen, ~ .x$fixed) 
   fxd <- do.call(rbind, fxd)
-  fxd <- as.data.frame(fxd)
-  sapply(fxd, function(x) quantile(x, probs = c(0.025, 0.5, 0.975)))
+  fxd <- as.tibble(fxd) %>% 
+  mutate(iter = 1:1000)
+  fxd
 })
 names(scenario_res) <- scenarios
+scenario_res <- bind_rows(scenario_res, .id = "scenario")
 
-scenario_res <- lapply(seq_along(scenarios), function(i) {
-  scenario_res <- as.data.frame(scenario_res[[i]])
-  scenario_res <- cbind(scenario_res, scenarios_names[i,])
-  scenario_res$qs <- paste0("q", c(2.5, 50, 97.5))
-  scenario_res
-})
+# Find the iteration when got the mean value (or closest to it)
+mean_scenario <- scenario_res %>% 
+  group_by(scenario) %>% 
+  mutate(min_diff = abs(mean - mean(mean))) %>% 
+  arrange(scenario, min_diff) %>% 
+  slice(1) %>% 
+  ungroup()
 
-scenario_res <- bind_rows(scenario_res)
+# Take the mean value and qintiles
+scenario_res_q <- scenario_res %>% 
+  select(scenario, mean, `0.025quant`, `0.975quant`) %>% 
+  group_by(scenario) %>% 
+  summarise_all(.funs = list(est = "mean",
+                          lci =function(x) quantile(x, 0.025),
+                          uci =function(x) quantile(x, 0.975))) %>% 
+  ungroup()
 
+scenario_res_q <- scenario_res_q %>% 
+  gather(key = "scenario_new", value = "value", -scenario) %>% 
+  separate(scenario_new, into = c("stat", "smry"), sep = "_")
 
-scenario_res2 <- scenario_res %>% 
-  gather(key = "var", value = "value", -atc5, -drug, -trial, -qs) %>% 
-  spread(key = qs, value = value) %>% 
-  filter(var %in% c("0.025quant", "mean", "0.975quant")) %>% 
-  mutate(result = factor(var, c("0.025quant", "mean", "0.975quant"),
-                         c("lci", "mean", "uci")),
+## Separate names
+scenario_names_lng <- ScenarioNames(scenario_res_q$scenario)
+scenario_res_q <- bind_cols(scenario_names_lng, scenario_res_q)
+
+## Spreadstatistic to wide
+scenario_res_q <- scenario_res_q %>% 
+  spread(key = smry, value = value)
+
+scenario_res2 <- scenario_res_q %>% 
+  mutate(trial_drug = trial + atc5,
+         result = factor(stat, levels = c("0.025quant", "mean", "0.975quant")),
          my_alpha = if_else(result == "mean", 1, 0),
          trial = paste0("Trial ", trial),
          drug = paste0("Drug ", drug),
-         atc5 = paste0("Class ", atc5))
+         atc5 = paste0("Class ", atc5)) %>% 
+  as_tibble()
 
 pd <- position_dodge(width = 0.4)
 
 emphasise_class <- ggplot(scenario_res2,
-                aes(x = atc5, y = q50, ymin = q2.5, ymax = q97.5, colour = result,
+                aes(x = atc5, y = est, ymin = lci, ymax = uci, colour = result,
                     alpha = my_alpha)) +
   geom_errorbar(position = pd) +
   geom_point(position = pd) +
   facet_grid(trial ~ drug) +
   scale_x_discrete("", labels = c(0.05, 0.15, 0.25)) +
   scale_y_continuous("Effect estimate") +
-  scale_alpha(range = c(0.4, 1), guide = FALSE)
+  scale_alpha(range = c(0.4, 1), guide = FALSE) +
+  scale_colour_discrete("") 
 
 emphasise_trial <- emphasise_class %+% scenario_res2 +
   aes(x = trial) +
@@ -71,8 +89,28 @@ emphasise_drug <- emphasise_class %+% scenario_res2 +
   aes(x = drug) +
   facet_grid(atc5 ~ trial)
 
-pdf("unix_sim1.pdf")
+pdf("figures/unix_sim1.pdf")
 emphasise_class + ggtitle("Drug class variation on x-axis")
 emphasise_drug + ggtitle("Drug variation on x-axis")
 emphasise_trial + ggtitle("Trial variation on x-axis")
 dev.off()
+
+all_single_plot <- ggplot(scenario_res2,
+                aes(x = atc5, y = q50, ymin = q2.5, ymax = q97.5, colour = trial_drug,
+                    alpha = my_alpha, group = result)) +
+  geom_errorbar(position = pd) +
+  geom_point(position = pd) +
+  scale_x_discrete("", labels = c(0.05, 0.15, 0.25)) +
+  scale_y_continuous("Effect estimate") +
+  scale_alpha(range = c(0.4, 1), guide = FALSE)
+
+tiff("figures/variation_estimates.tiff", res = 600, compression = "lzw",
+     unit = "in", height = 7, width = 7)
+emphasise_class + scale_x_discrete("Between class variation", labels = c(0.05, 0.15, 0.25))
+dev.off()
+
+
+## Examine predictive distributions
+mean_scenario <- bind_cols(scenarios_names, mean_scenario)
+saveRDS(mean_scenario, "scratch_data/mean_scenario")
+## RE-run models for 05_05_05 and 

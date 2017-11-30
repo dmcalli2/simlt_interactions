@@ -46,7 +46,7 @@ comorbidity_prev <- 0.2
 sd <- 1
 # calculate SE for comorbidity adn non-comorbidity group (same for placebo and treatment)
 
-# Remove single alpha-glucosidase inhibitor trial
+# Remove single alpha-glucosidase inhibitor trial, already out of diabetes file
 diabetes_final <-  
   subset(diabetes_final, diabetes_final$atc_5 != "A10BF")
 diabetes_final <- diabetes_final[with(diabetes_final, order(atc_5, drug, nct_id)),]
@@ -80,16 +80,9 @@ my_data <- data.frame(y_prec = inter_prec,
 
 ## Select only diabetes variables need for each analysis
 diabetes <- diabetes [ , c("atc_5", "drug", "nct_id", "iteration")]
-
 save(my_data, myform_nested2, diabetes, res, file = "data/for_inla.Rdata")
 
-## AS part of prepare INLA write unix scripts
-# scenarios <- c("atc5_0.05_trial_0.05_drug_0.05",
-#                   "atc5_0.1_trial_0.1_drug_0.1",
-#                   "atc5_0.25_trial_0.25_drug_0.25",
-#                   "atc5_0.1_trial_0.1_drug_0.25",
-#                   "atc5_0.1_trial_0.25_drug_0.1",
-#                   "atc5_0.25_trial_0.1_drug_0.1")
+### Create scripts to run on HPCC
 for(scenario in res_names) {
   con <- file(description =  paste0("unix_scripts/",scenario, ".sh"), open = "wb")
   top <- c("#!/bin/bash",
@@ -110,6 +103,5 @@ metascript <- paste0("qsub simuln/", res_names, ".sh")
 readr::write_lines(metascript, con)
 close(con)
 
-## Metascript to run other scripts
 
 

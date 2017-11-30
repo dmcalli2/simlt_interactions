@@ -77,6 +77,7 @@ df_choose <- map(c(q05 = 0.05, q50 = 0.5, q95 = 0.95), function(cutpoint){
     select(y_prec, y) 
 })
 
+# Add NAs to generate plot priors (ie no data)
 df_choose$non <- df_choose[[1]] %>% 
   mutate(y = NA) %>% 
   as_tibble()
@@ -125,7 +126,7 @@ res_plt <- res_plt %>%
   as_tibble()
 
 plot_impact <- ggplot(res_plt, aes(x = prior, y = values, fill = prior)) + 
-  geom_violin(draw_quantiles = c(0.025, 0.5, 0.975)) +
+  geom_violin(draw_quantiles = c(0.025, 0.5, 0.975), adjust = 1) +
   facet_wrap(~iteration) +
   scale_y_continuous("Treatment-covariate interaction") +
   scale_x_discrete("Prior used") +
@@ -133,7 +134,7 @@ plot_impact <- ggplot(res_plt, aes(x = prior, y = values, fill = prior)) +
   coord_cartesian(ylim = c(-0.75, 0.75))
 plot_impact
 
-tiff("figures/Impact_of_priors.tiff", res = 600, compression = "lzw", unit = "in",
+tiff("figures/Impact_of_priors2.tiff", res = 600, compression = "lzw", unit = "in",
      height = 8, width = 8)
 plot_impact
 dev.off()

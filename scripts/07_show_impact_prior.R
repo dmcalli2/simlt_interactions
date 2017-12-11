@@ -3,6 +3,7 @@ library(tidyverse)
 library(coda)
 library(ggplot2)
 library(rjags)
+library(stringr)
 load.module("glm")
 
 my_priors <- readRDS(file = "scratch_data/Priors_for_examining_class.Rds")
@@ -27,6 +28,7 @@ a10bx$y_prec <- a10bx$y_prec * c(1, (1/3^2), 1)
 class_effect <- tibble(iteration = 1:1000, class_effect = rnorm(1000, 0, 0.10))
 a10bx <- a10bx %>%
   inner_join(class_effect)
+set.seed(1234)
 a10bx <- a10bx %>% 
   mutate(y = rnorm(3000, class_effect, 0.05) + rnorm(1000, 0, 0.15))
 
@@ -41,8 +43,12 @@ hist(a10bx$y_crude)
 quantile(a10bx$y_crude, probs = c(0.05, 0.10, 0.25, 0.5, 0.75, 0.90, 0.95))
 # 20 % of samples, 10% either side
 
-# Add vague non-informative prior to existing priors and remove moderate prior
+# Add vague non-informative prior to existing priors, remove moderate prior
+# and set both informative priors to mean = -0.1, for simplicity for plot
 my_priors <- my_priors$param
+my_priors <- map(my_priors, function(x) {
+  x["m"] <- -0.1
+  x})
 my_priors <- my_priors[-2]
 my_priors$vague <- c(m = 0, s = 1, d = 3)
 
@@ -96,7 +102,7 @@ res <- map(df_choose, function(df_chosen){
   LINE$recompile()
   coda.samples(jags,
                 c('wd', 'wd_delta', 'wd_sd'),
-                20000)
+                40000)
  })
 })
 res2 <- do.call(c, res)
@@ -115,7 +121,7 @@ res_plt <- res_plt %>%
   mutate(iteration = str_sub(ind, 1, 3),
          prior = str_sub(ind, 5)) %>% 
   mutate(iteration = factor(iteration, levels = c("non","q05", "q50", "q95"),
-                            labels = c("Prior only","Strongly worse", "Neutral", "Strongly better")),
+                            labels = c("Prior only","Worse", "Neutral", "Better")),
          prior = factor(prior, levels = c("vague",
                                           "atc5_0.25_trial_0.25_drug_0.15",
                                           "atc5_0.05_trial_0.05_drug_0.15"
@@ -124,6 +130,10 @@ res_plt <- res_plt %>%
                                    "Weak","Strong" ))) %>% 
   select(-ind) %>% 
   as_tibble()
+
+res_plt <- res_plt %>% 
+  group_by(iteration, prior) %>% 
+  sample_n(10000)
 
 plot_impact <- ggplot(res_plt, aes(x = prior, y = values, fill = prior)) + 
   geom_violin(draw_quantiles = c(0.025, 0.5, 0.975), adjust = 1) +
@@ -134,7 +144,7 @@ plot_impact <- ggplot(res_plt, aes(x = prior, y = values, fill = prior)) +
   coord_cartesian(ylim = c(-0.75, 0.75))
 plot_impact
 
-tiff("figures/Impact_of_priors2.tiff", res = 600, compression = "lzw", unit = "in",
+tiff("figures/Impact_of_priors5.tiff", res = 600, compression = "lzw", unit = "in",
      height = 8, width = 8)
 plot_impact
 dev.off()

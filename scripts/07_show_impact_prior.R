@@ -88,7 +88,8 @@ df_choose$non <- df_choose[[1]] %>%
   mutate(y = NA) %>% 
   as_tibble()
 
-
+system.time({
+  
 res <- map(df_choose, function(df_chosen){
   # Loop through dataframe choices
   map(my_priors, function(prior_slct){
@@ -105,6 +106,9 @@ res <- map(df_choose, function(df_chosen){
                 40000)
  })
 })
+
+})
+
 res2 <- do.call(c, res)
 
 ## Summary statistics

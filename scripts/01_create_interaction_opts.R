@@ -4,7 +4,7 @@
 # eg (intercept, comorbidity effect, treatment allocation and interaction)
 library(tidyverse)
 ## Read in diabetes trials
-load("../Trial_identify/clinical_trials_august_2017/scratch_data/data_for_simulation.Rdata")
+load("data/metadata_for_simulation.Rdata")
 
 # Remove single alpha-glucosidase inhibitor trial
 diabetes_final <-  

@@ -8,7 +8,7 @@ load(file = "data/for_inla.Rdata")
 ############ From now on putty, pass with args
 ## Loop through 6 scenarios, this will take approximately 3 hours
 
-choose_scenario <- "atc5_0.25_trial_0.25_drug_0.25"
+choose_scenario <- "atc5_0.05_trial_0.05_drug_0.05"
 if(with_args) choose_scenario <- commandArgs(trailingOnly=TRUE)
 
 # Add in main effect to a chosen variation scenario
@@ -71,7 +71,7 @@ if(with_args) choose_scenario <- commandArgs(trailingOnly=TRUE)
      curve(mydnorm, from = -2, to = 2, add = TRUE, col = "black")
      
      mydt <- function(x, m, s, df) dt((x-m)/s, df)/s
-     fitted_t <- MASS::fitdistr(smpls[,1], mydt, list(m = 0, s = 0.5, df = 3),
+     fitted_t <- MASS::fitdistr(smpls[,1], mydt, list(m = -0.1, s = 0.5, df = 3),
                                 lower = -5)
      res <- fitted_t$estimate
      mydt_fitted <- function(x) mydt(x, res["m"], res["s"], res["df"])

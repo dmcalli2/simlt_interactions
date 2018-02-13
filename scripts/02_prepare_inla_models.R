@@ -2,7 +2,7 @@
 library(INLA)
 
 ## Read in diabetes trials
-load("../Trial_identify/clinical_trials_august_2017/scratch_data/data_for_simulation.Rdata")
+load("Data/metadata_for_simulation.Rdata")
 
 # Create effect estimates interactions with variation at trial, drug and class level
 # Read in dataset with different interactions
@@ -51,9 +51,12 @@ diabetes_final <-
   subset(diabetes_final, diabetes_final$atc_5 != "A10BF")
 diabetes_final <- diabetes_final[with(diabetes_final, order(atc_5, drug, nct_id)),]
 
+# Calculate standard error for groups with and without comorbidity
 ncomo_se = sd/ ((1-comorbidity_prev) * diabetes_final$n_per_grp)^0.5
 ycomo_se = sd/ (   comorbidity_prev  * diabetes_final$n_per_grp)^0.5
+
 # Calculate SE for interaction, same for all
+# We multiple by two because the standard error is the same in the treatment and placebo arms
 inter_prec <- 1/(2*ncomo_se^2 + 2*ycomo_se^2)
 
 ## Write model

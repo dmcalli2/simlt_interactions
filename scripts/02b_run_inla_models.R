@@ -9,13 +9,13 @@ load(file = "data/for_inla.Rdata")
 choose_scenario <- "atc5_0.05_trial_0.05_drug_0.05"
 if(with_args) choose_scenario <- commandArgs(trailingOnly=TRUE)
 
-# Add in main effect to a chosen variation scenario
+# Add in wider drug group level effect to a chosen variation scenario
  diabetes$res <- res[, choose_scenario] + -0.1
 
 # Loop through each iteration
  scenario <- vector(length = 250, mode = "list")
- for (iter in 1:10){
-      
+ for (iter in 2:10){
+
     ## Add values for specific iteration
     my_data$y <-  diabetes$res[diabetes$iteration == iter]
     
@@ -30,7 +30,7 @@ if(with_args) choose_scenario <- commandArgs(trailingOnly=TRUE)
                  control.family = list(hyper = list(prec = list(fixed = TRUE, initial = 0))),
                  # Likelihood precisions
                  scale = my_data$y_prec,
-                 # Prior distribution for "fixed" effects - really for mu_mu
+                 # Prior distribution for "fixed" effects - really for mu_mu 
                  control.fixed = list(mean = 0, prec = 0.25),
                  # Optionally compute DIC
                  verbose = FALSE)
@@ -38,4 +38,4 @@ if(with_args) choose_scenario <- commandArgs(trailingOnly=TRUE)
     scenario[[iter]] <- summary(mod1_nested2)
  }
  # Saving each list as a data file
- saveRDS(scenario, file = paste0("scenario_",choose_scenario, ".rds" ))
+ # saveRDS(scenario, file = paste0("scenario_",choose_scenario, ".rds" ))

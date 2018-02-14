@@ -167,3 +167,47 @@ plot_actn
 plot_como
 plot_allc
 dev.off()
+
+## Simplify
+plot_actn2 <-  ggplot(scenarios %>% 
+                        filter(log_or_como %>%  round() ==0,
+                               log_or_allc %in% c(-0.5)), 
+                 aes(x = event_rate_base, y = se_actn*(n_study_group*prev_com)^0.5,
+                     colour = log_or_actn,
+                     group = interaction(log_or_actn, log_or_allc))) + 
+  geom_point() +
+  geom_line(alpha = 0.2) +
+  facet_grid(n_study_group ~ prev_com) +
+  scale_y_continuous("se for log OR interaction x sqrt of number in one arm wiht comorbidity") 
+
+
+# summarise standard errors by n, event rate in baseline, prevalence of
+# comorbidity and size of interaction This means need to do around a mean of 10
+# different standard errors per trial per simulation to cover the 165 different
+# combinations per trial (based on the range of odds ratios for the 
+# main treatment effect and comorbidity effect ( What we are assuming here is that a
+# difference in standradr error for an individual trial of 0.025 is trivial
+se_smry <- scenarios %>% 
+  group_by(n_study_group, prev_com, event_rate_base, log_or_actn) %>% 
+  summarise_at(vars(se_actn), .funs = funs(mean, sd, min, max, length)) %>% 
+  ungroup() %>% 
+  mutate(unq_se = round((max-min)/0.025, 0))
+                         
+stem(se_smry$unq_se)
+mean(se_smry$unq_se)
+
+## To simplify further, for each interaction, we need to run a mean of 53
+## simulations per trial (as opposed to one simulation per trial for the
+## continuous analysis). We could start with the top and bottom scenarios and
+## work intelligently through until no differences are apparent.
+se_smry_interaction <-  scenarios %>% 
+  group_by(n_study_group, log_or_actn) %>% 
+  summarise_at(vars(se_actn), .funs = funs(mean, sd, min, max, length)) %>% 
+  ungroup() %>% 
+  mutate(unq_se = round((max-min)/0.025, 0))
+stem(se_smry_interaction$unq_se)
+mean(se_smry_interaction$unq_se)
+sum(se_smry_interaction$unq_se) # total number of simulations to cover all possibilities for 3 trials
+unique(scenarios$log_or_actn)
+
+

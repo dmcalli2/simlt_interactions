@@ -162,23 +162,23 @@ plot_actn <- plot_grey + aes(colour = log_or_actn)
 plot_como <- plot_grey + aes(colour = log_or_como)
 plot_allc <- plot_grey + aes(colour = log_or_allc)
 
-pdf("figures/Plots of standard errors given itneractions.pdf", width = 10, height = 8)
-plot_actn
-plot_como
-plot_allc
-dev.off()
-
-## Simplify
-plot_actn2 <-  ggplot(scenarios %>% 
-                        filter(log_or_como %>%  round() ==0,
-                               log_or_allc %in% c(-0.5)), 
-                 aes(x = event_rate_base, y = se_actn*(n_study_group*prev_com)^0.5,
-                     colour = log_or_actn,
-                     group = interaction(log_or_actn, log_or_allc))) + 
-  geom_point() +
-  geom_line(alpha = 0.2) +
-  facet_grid(n_study_group ~ prev_com) +
-  scale_y_continuous("se for log OR interaction x sqrt of number in one arm wiht comorbidity") 
+# pdf("figures/Plots of standard errors given itneractions.pdf", width = 10, height = 8)
+# plot_actn
+# plot_como
+# plot_allc
+# dev.off()
+# 
+# ## Simplify
+# plot_actn2 <-  ggplot(scenarios %>% 
+#                         filter(log_or_como %>%  round() ==0,
+#                                log_or_allc %in% c(-0.5)), 
+#                  aes(x = event_rate_base, y = se_actn*(n_study_group*prev_com)^0.5,
+#                      colour = log_or_actn,
+#                      group = interaction(log_or_actn, log_or_allc))) + 
+#   geom_point() +
+#   geom_line(alpha = 0.2) +
+#   facet_grid(n_study_group ~ prev_com) +
+#   scale_y_continuous("se for log OR interaction x sqrt of number in one arm wiht comorbidity") 
 
 
 # summarise standard errors by n, event rate in baseline, prevalence of
@@ -210,4 +210,19 @@ mean(se_smry_interaction$unq_se)
 sum(se_smry_interaction$unq_se) # total number of simulations to cover all possibilities for 3 trials
 unique(scenarios$log_or_actn)
 
+scenarios_lkp <- scenarios %>% 
+  group_by(n_study_group, log_or_actn) %>% 
+  mutate(min_se = min(se_actn)) %>% 
+  ungroup() %>% 
+  mutate(se_stnd_grp = trunc((se_actn-min_se)/0.025)) %>% 
+  group_by(n_study_group, log_or_actn, se_stnd_grp) %>% 
+  mutate(se_stnd = mean(se_actn)) %>% 
+  ungroup() %>% 
+  mutate(se_diff = se_actn - se_stnd)
+hist(scenarios_lkp$se_diff)  
 
+scenarios_lkp %>% 
+  filter(n_study_group == 150, prev_com == 0.1, as.character(log_or_actn) == "-0.1") %>% 
+  distinct(n_study_group, log_or_actn, se_stnd) %>% 
+  arrange(se_stnd) %>% 
+  as.data.frame()

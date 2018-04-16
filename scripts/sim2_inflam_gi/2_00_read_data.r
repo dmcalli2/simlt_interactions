@@ -2,9 +2,7 @@
 library(tidyverse)
 
 ## Read in diabetes trials
-load("data/metadata_for_simulation.Rdata")
+load("data/rheum_final.Rdata")
 
 
-diabetes_final <- diabetes_final %>% 
-  filter(atc_5 != "A10BF")
 

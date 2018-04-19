@@ -11,12 +11,7 @@ table(rheum_final$conditions, rheum_final$atc_5)
 ## Make same answer each set of classes (not each class)
 set.seed(1234)
 
-### Each simulation scenario, overall effects
-main_scen <- expand.grid(
-  cept = 0,
-  como = c(-0.2,-0.1, 0, 0.1, 0.2),
-  allc = c(-0.2,-0.1, 0, 0.1, 0.2),
-  actn = c(-0.2,-0.1, 0, 0.1, 0.2)
+
 )
 ### Each simulation scenario, variation around the overall effect
 varn_scen <- list(cept = c(0.25, 0.5),
@@ -127,15 +122,15 @@ actn <- bind_cols(path, moa, drug, trial) %>%
   mutate(iteration = rep(1:1000, length(rheum_final$nct_id))) %>% 
     select(brd_drug_pth, moa, drug, iteration, everything())
 
-## Examine interaction effects at drug-class level
+## Examine interaction effects at drug-class (MoA) level
 actn %>%
-  select(iteration, atc_5, starts_with("atc5")) %>% 
+  select(iteration, moa, starts_with("moa")) %>% 
   distinct() %>%
   # Examine SD across classes for each iteration
   group_by(iteration) %>% 
-  summarise_at(vars(starts_with("atc5")), sd) %>%
+  summarise_at(vars(starts_with("moa_")), sd) %>%
   # Summarise results across all iterations
-  summarise_at(vars(starts_with("atc5")), mean)
+  summarise_at(vars(starts_with("moa_")), mean)
 
-saveRDS(actn, file = "scratch_data/interactn_opts.Rds")
-save(diabetes_final, file = "scratch_Data/interaction_opts_ordering.Rds")
+saveRDS(actn, file = "scratch_data/sim2_interactn_opts.Rds")
+save(rheum_final, file = "scratch_Data/sim2_interaction_opts_ordering.Rds")

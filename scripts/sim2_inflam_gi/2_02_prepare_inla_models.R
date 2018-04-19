@@ -1,89 +1,98 @@
 # 02_create_interaction_datasets.R
 library(INLA)
 
-## Read in diabetes trials
-load("Data/metadata_for_simulation.Rdata")
+## Read in inflamm/GI trials
+load("Data/rheum_final.Rdata")
 
 # Create effect estimates interactions with variation at trial, drug and class level
 # Read in dataset with different interactions
 # Each variable is for a different component
-diabetes <- readRDS("scratch_data/interactn_opts.Rds")
-diabetes <- as.data.frame(diabetes)
+rheum <- readRDS("scratch_data/sim2_interactn_opts.Rds")
+rheum <- as.data.frame(rheum)
 
 # extract vectors describing trial, drug and atc5 level interactions
-atc5s  <- names(diabetes)[substr(names(diabetes), 1, 5) == "atc5_"]
-trials <- names(diabetes)[substr(names(diabetes), 1, 6) == "trial_"]
-drugs <- names(diabetes)[substr(names(diabetes), 1, 5) == "drug_"]
+
+paths  <- names(rheum)[substr(names(rheum), 1, 5) == "path_"]
+moas  <- names(rheum)[substr(names(rheum), 1, 4) == "moa_"]
+trials <- names(rheum)[substr(names(rheum), 1, 6) == "trial_"]
+drugs <- names(rheum)[substr(names(rheum), 1, 5) == "drug_"]
 
 # Choose fewer options to reduce number need to run
-atc5s <- atc5s[c(1,3,5)]
-trials <- trials[c(1,3,5)]
+paths <- paths[c(3)]    ##Pick only one option for path and trial level at this stage
+moas <- moas[c(1,3,5)]
+trials <- trials[c(3)]  ##Not sure if this is the correct way of handling this, could be we need
+                        # to just avoid simulating interactions at these levels if not using them
 drugs <- drugs[c(1,3,5)]
 
 # Create matrix of combinations
 count <- 0
-res <- matrix(nrow = nrow(diabetes), ncol = length(atc5s) * length(trials) * length(drugs))
-res_names <- vector(length = length(atc5s) * length(trials) * length(drugs))
+res <- matrix(nrow = nrow(rheum), ncol = length(paths) *length(moas) * length(trials) * length(drugs))
+res_names <- vector(length = length(paths) *length(moas) * length(trials) * length(drugs))
 
-for (i in atc5s){
-  for(j in trials){
-    for(k in drugs){
+for (h in paths){
+  for(i in moas){
+    for(j in trials){
+      for(k in drugs){
       count <- count + 1
     res[, count] <- 
-       diabetes[ , i] +
-       diabetes[ , j] +
-       diabetes[ , k]
+       rheum[ , h] + 
+       rheum[ , i] +
+       rheum[ , j] +
+       rheum[ , k]
     res_names[count] <- paste(i, j, k, sep = "_")
       }
+    }  
   }
 }
 colnames(res) <- res_names
-rownames(res) <- paste(diabetes$atc_5, diabetes$drug, diabetes$nct_id, diabetes$iteration,
+rownames(res) <- paste(rheum$brd_drug_pth, rheum$moa, rheum$drug, rheum$nct_id, rheum$iteration,
                        sep = "_")
 
 # Add in se term for interaction
 comorbidity_prev <- 0.2
-sd <- 1
+sd <- 1       ### This should come from real studies and depend on indication (i.e., on outcome IBDQ vs ACR)
+      
 # calculate SE for comorbidity adn non-comorbidity group (same for placebo and treatment)
 
-# Remove single alpha-glucosidase inhibitor trial, already out of diabetes file
-diabetes_final <-  
-  subset(diabetes_final, diabetes_final$atc_5 != "A10BF")
-diabetes_final <- diabetes_final[with(diabetes_final, order(atc_5, drug, nct_id)),]
+rheum_final <- rheum_final[with(rheum_final, order(atc_5, drug, nct_id)),]
 
 # Calculate standard error for groups with and without comorbidity
-ncomo_se = sd/ ((1-comorbidity_prev) * diabetes_final$n_per_grp)^0.5
-ycomo_se = sd/ (   comorbidity_prev  * diabetes_final$n_per_grp)^0.5
+ncomo_se = sd/ ((1-comorbidity_prev) * rheum_final$n_per_grp)^0.5
+ycomo_se = sd/ (   comorbidity_prev  * rheum_final$n_per_grp)^0.5
 
 # Calculate SE for interaction, same for all
 # We multiple by two because the standard error is the same in the treatment and placebo arms
 inter_prec <- 1/(2*ncomo_se^2 + 2*ycomo_se^2)
 
 ## Write model
-myform_nested2 <- y ~ -1 + myatc4 + 
+myform_nested2 <- y ~ -1 + wdg +    ## wdg = wider (/widest) drug grouping (top of hierarchy)
   f(trial, model = "iid", 
     hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 1)))) +
   f(mydrug, model = "iid", 
     hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 1)))) +
-  f(myatc5, model = "iid", 
+  f(mymoa, model = "iid", 
+    hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 1)))) +
+  f(mypath, model = "iid", 
     hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 1))))
 
 ## Make part of model matrix which is identical for all iterations
-my_drug_n <- as.numeric(as.factor(diabetes_final$drug))
-study_id_n <- as.numeric(as.factor(as.character(diabetes_final$nct_id)))
-atc5_n <- as.numeric(as.factor(as.character(diabetes_final$atc_5)))
+my_drug_n <- as.numeric(as.factor(rheum_final$drug))
+study_id_n <- as.numeric(as.factor(as.character(rheum_final$nct_id)))
+moa_n <- as.numeric(as.factor(as.character(rheum_final$moa)))
+path_n <- as.numeric(as.factor(as.character(rheum_final$brd_drug_pth)))
 
 ## Create dataset which is consistent for all iterations
 my_data <- data.frame(y_prec = inter_prec, 
                       trial = study_id_n,
-                      myatc4 = 1,
-                      myatc5 = atc5_n,
-                      mydrug = my_drug_n)
+                      wdg = 1,            ## wdg = wider (/widest) drug grouping (top of hierarchy)
+                      mymoa = moa_n,
+                      mydrug = my_drug_n,
+                      mypath = path_n)
 
 
-## Select only diabetes variables need for each analysis
-diabetes <- diabetes [ , c("atc_5", "drug", "nct_id", "iteration")]
-save(my_data, myform_nested2, diabetes, res, file = "data/for_inla.Rdata")
+## Select only rheum variables need for each analysis
+rheum <- rheum [ , c("brd_drug_pth", "moa", "drug", "nct_id", "iteration")]
+save(my_data, myform_nested2, rheum, res, file = "data/for_inla.Rdata")
 
 ### Create scripts to run on HPCC
 for(scenario in res_names) {

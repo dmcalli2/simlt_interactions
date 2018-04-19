@@ -14,13 +14,7 @@ diabetes_final <-
 ## Make same answer each set of classes (not each class)
 set.seed(1234)
 
-### Each simulation scenario, overall effects
-main_scen <- expand.grid(
-  cept = 0,
-  como = c(-0.2,-0.1, 0, 0.1, 0.2),
-  allc = c(-0.2,-0.1, 0, 0.1, 0.2),
-  actn = c(-0.2,-0.1, 0, 0.1, 0.2)
-)
+
 ### Each simulation scenario, variation around the overall effect
 varn_scen <- list(cept = c(0.25, 0.5),
                      como = c(0.25, 0.5),

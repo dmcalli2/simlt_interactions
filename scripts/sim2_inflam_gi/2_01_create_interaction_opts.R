@@ -12,7 +12,6 @@ table(rheum_final$conditions, rheum_final$atc_5)
 set.seed(1234)
 
 
-)
 ### Each simulation scenario, variation around the overall effect
 varn_scen <- list(cept = c(0.25, 0.5),
                      como = c(0.25, 0.5),
@@ -102,7 +101,7 @@ trial <- trial %>%
   arrange(nct_id)
 
 drug <- drug %>% 
-  inner_join(rheum_final %>%  select(nct_id, drug)) %>% 
+  inner_join(rheum_final %>%  select(nct_id, drug, conditions)) %>% 
   arrange(nct_id) %>% 
   select(-nct_id)
 
@@ -118,9 +117,10 @@ path <- path %>%
 
 ## Combine all interaction effects
 actn <- bind_cols(path, moa, drug, trial) %>% 
-  arrange(brd_drug_pth, moa, drug, nct_id) %>% 
+  arrange(brd_drug_pth, moa, drug,  nct_id) %>% 
   mutate(iteration = rep(1:1000, length(rheum_final$nct_id))) %>% 
-    select(brd_drug_pth, moa, drug, iteration, everything())
+    select(brd_drug_pth, moa, drug,indication = conditions, iteration, everything())
+
 
 ## Examine interaction effects at drug-class (MoA) level
 actn %>%

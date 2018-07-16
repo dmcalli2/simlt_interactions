@@ -18,10 +18,9 @@ trials <- names(rheum)[substr(names(rheum), 1, 6) == "trial_"]
 drugs <- names(rheum)[substr(names(rheum), 1, 5) == "drug_"]
 
 # Choose fewer options to reduce number need to run
-paths <- paths[c(3)]    ##Pick only one option for path and trial level at this stage
+paths <- paths[c(3)]    # Reduce number of scenarios by sampling only one level of variation at highest level
 moas <- moas[c(1,3,5)]
-trials <- trials[c(3)]  ##Not sure if this is the correct way of handling this, could be we need
-                        # to just avoid simulating interactions at these levels if not using them
+trials <- trials[c(1,3,5)]  
 drugs <- drugs[c(1,3,5)]
 
 # Create matrix of combinations
@@ -39,7 +38,7 @@ for (h in paths){
        rheum[ , i] +
        rheum[ , j] +
        rheum[ , k]
-    res_names[count] <- paste(i, j, k, sep = "_")
+    res_names[count] <- paste(h, i, j, k, sep = "_")
       }
     }  
   }
@@ -50,7 +49,16 @@ rownames(res) <- paste(rheum$brd_drug_pth, rheum$moa, rheum$drug, rheum$nct_id, 
 
 # Add in se term for interaction
 comorbidity_prev <- 0.2
-sd <- 1       ### This should come from real studies and depend on indication (i.e., on outcome IBDQ vs ACR)
+
+load("data/outcome_smrs_for_simulation.Rdata")
+print(c(das_smrs_sd, ibdq_smrs_sd))
+
+# Values of 0.14 and 0.17 from 'standardized' versions of DAS & IBDQ
+# If correct, I can't see value of distinguishing - will set to 0.2 here
+# but could presumably use 1 as diabetes (not sure how HB1c was scaled) - check
+# this with DM
+
+sd <- 0.2       ### This should come from real studies and depend on indication (i.e., on outcome IBDQ, DAS)
       
 # calculate SE for comorbidity adn non-comorbidity group (same for placebo and treatment)
 
@@ -92,25 +100,27 @@ my_data <- data.frame(y_prec = inter_prec,
 
 ## Select only rheum variables need for each analysis
 rheum <- rheum [ , c("brd_drug_pth", "moa", "drug", "nct_id", "iteration")]
-save(my_data, myform_nested2, rheum, res, file = "data/for_inla.Rdata")
+save(my_data, myform_nested2, rheum, res, file = "data/sim2_for_inla.Rdata")
 
 ### Create scripts to run on HPCC
 for(scenario in res_names) {
-  con <- file(description =  paste0("unix_scripts/",scenario, ".sh"), open = "wb")
+  con <- file(description =  paste0("unix_scripts/sim2/",scenario, ".sh"), open = "wb")
   top <- c("#!/bin/bash",
           "#PBS -l nodes=1:ppn=1:centos6",
           "#PBS -l cput=2:00:00")
   
   act <- paste("/usr/bin/Rscript simuln/02b_run_inla_models.R",
+               ## act <- paste("/usr/bin/Rscript simuln/02c_run_inla_class_level.R",
                scenario,
-                "> /export/home/dma24j/run.output", sep = " ")
+               ##      "> /export/home/dma24j/run.output", sep = " ")
+               "&>> simuln/output_sim2.txt", sep = " ")
   readr::write_lines(c(top, act), con)
   close(con)
 }
 # Metascript to run scripts
 # CAn run up to 50 at a time on short list
 # all take about 30 mins
-con <- file(description =  "unix_scripts/metascript.sh", open = "wb")
+con <- file(description =  "unix_scripts/sim2/metascript.sh", open = "wb")
 metascript <- paste0("qsub simuln/", res_names, ".sh")
 readr::write_lines(metascript, con)
 close(con)

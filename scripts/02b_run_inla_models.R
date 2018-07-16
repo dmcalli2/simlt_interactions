@@ -9,6 +9,8 @@ load(file = "data/for_inla.Rdata")
 choose_scenario <- "atc5_0.05_trial_0.05_drug_0.05"
 if(with_args) choose_scenario <- commandArgs(trailingOnly=TRUE)
 
+print(choose_scenario)
+
 # Add in wider drug group level effect to a chosen variation scenario
  diabetes$res <- res[, choose_scenario] + -0.1
 
@@ -38,4 +40,4 @@ if(with_args) choose_scenario <- commandArgs(trailingOnly=TRUE)
     scenario[[iter]] <- summary(mod1_nested2)
  }
  # Saving each list as a data file
- # saveRDS(scenario, file = paste0("scenario_",choose_scenario, ".rds" ))
+  saveRDS(scenario, file = paste0("scenario_",choose_scenario, ".rds" ))

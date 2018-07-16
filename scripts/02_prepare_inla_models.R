@@ -93,8 +93,10 @@ for(scenario in res_names) {
           "#PBS -l cput=2:00:00")
   
   act <- paste("/usr/bin/Rscript simuln/02b_run_inla_models.R",
-               scenario,
-                "> /export/home/dma24j/run.output", sep = " ")
+ ## act <- paste("/usr/bin/Rscript simuln/02c_run_inla_class_level.R",
+                            scenario,
+          ##      "> /export/home/dma24j/run.output", sep = " ")
+                  "&>> simuln/output.txt", sep = " ")
   readr::write_lines(c(top, act), con)
   close(con)
 }

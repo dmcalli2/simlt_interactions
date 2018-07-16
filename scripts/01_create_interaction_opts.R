@@ -115,4 +115,4 @@ actn %>%
   summarise_at(vars(starts_with("atc5")), mean)
 
 saveRDS(actn, file = "scratch_data/interactn_opts.Rds")
-save(diabetes_final, file = "scratch_Data/interaction_opts_ordering.Rds")
+save(diabetes_final, file = "scratch_data/interaction_opts_ordering.Rds")

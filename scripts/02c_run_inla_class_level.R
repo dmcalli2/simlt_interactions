@@ -2,7 +2,7 @@
 
 #02b_run_inla_model
 library(INLA)
-# INLA:::inla.dynload.workaround() 
+INLA:::inla.dynload.workaround() 
 with_args <- FALSE
 load(file = "data/for_inla.Rdata")
 ############ From now on putty, pass with args

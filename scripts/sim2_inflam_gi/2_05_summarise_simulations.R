@@ -4,13 +4,13 @@ library(stringr)
 library(ggplot2)
 
 # Identify saved results
-scenarios <- list.files("unix_results/sim1/", patt = "scen")
+scenarios <- list.files("unix_results/sim2/sd1/", patt = "scen")
 
 ScenarioNames <- function (scenarios) {
-  scenarios_names <- str_split_fixed( str_sub(scenarios, 1, -5), "_", n = 7)
-  scenarios_names <- apply(scenarios_names[, c(3, 5, 7)], 2, as.double)
+  scenarios_names <- str_split_fixed( str_sub(scenarios, 1, -5), "_", n = 10)
+  scenarios_names <- apply(scenarios_names[, c(4, 6, 8, 10)], 2, as.double)
   scenarios_names <- as.data.frame(scenarios_names)
-  names(scenarios_names) <- c("atc5", "trial", "drug")
+  names(scenarios_names) <- c("path", "moa", "trial", "drug")
   scenarios_names
 }
 
@@ -18,7 +18,7 @@ scenarios_names <- ScenarioNames(scenarios)
 
 # read and convert to data frame for each scenario
 scenario_res <- lapply(scenarios, function(each_scenario){
-  each_scenario <- readRDS(paste0("unix_results/sim1/", each_scenario))})
+  each_scenario <- readRDS(paste0("unix_results/sim2/sd1/", each_scenario))})
 
 scenario_res <- map(scenario_res, function (scen){
   fxd <- map(scen, ~ .x$fixed) 
@@ -60,18 +60,19 @@ scenario_res_q <- scenario_res_q %>%
   spread(key = smry, value = value)
 
 scenario_res2 <- scenario_res_q %>% 
-  mutate(trial_drug = trial + atc5,
+  mutate(trial_drug = trial + drug,
          result = factor(stat, levels = c("0.025quant", "mean", "0.975quant")),
          my_alpha = if_else(result == "mean", 1, 0),
          trial = paste0("Trial ", trial),
          drug = paste0("Drug ", drug),
-         atc5 = paste0("Class ", atc5)) %>% 
+         moa = paste0("MoA ", moa),
+         path = paste0("Broad_pth ", path)) %>% 
   as_tibble()
 
 pd <- position_dodge(width = 0.4)
 
 emphasise_class <- ggplot(scenario_res2,
-                aes(x = atc5, y = est, ymin = lci, ymax = uci, colour = result,
+                aes(x = moa, y = est, ymin = lci, ymax = uci, colour = result,
                     alpha = my_alpha)) +
   geom_errorbar(position = pd) +
   geom_point(position = pd) +
@@ -83,20 +84,20 @@ emphasise_class <- ggplot(scenario_res2,
 
 emphasise_trial <- emphasise_class %+% scenario_res2 +
   aes(x = trial) +
-  facet_grid(atc5 ~ drug)
+  facet_grid(moa ~ drug)
 
 emphasise_drug <- emphasise_class %+% scenario_res2 +
   aes(x = drug) +
-  facet_grid(atc5 ~ trial)
+  facet_grid(moa ~ trial)
 
-pdf("figures/unix_sim1.pdf")
-emphasise_class + ggtitle("Drug class variation on x-axis")
+pdf("figures/unix_sim2_sd1.pdf")
+emphasise_class + ggtitle("MoA variation on x-axis")
 emphasise_drug + ggtitle("Drug variation on x-axis")
 emphasise_trial + ggtitle("Trial variation on x-axis")
 dev.off()
 
 # all_single_plot <- ggplot(scenario_res2,
-#                 aes(x = atc5, y = q50, ymin = q2.5, ymax = q97.5, colour = trial_drug,
+#                 aes(x = moa, y = q50, ymin = q2.5, ymax = q97.5, colour = trial_drug,
 #                     alpha = my_alpha, group = result)) +
 #   geom_errorbar(position = pd) +
 #   geom_point(position = pd) +
@@ -104,9 +105,9 @@ dev.off()
 #   scale_y_continuous("Effect estimate") +
 #   scale_alpha(range = c(0.4, 1), guide = FALSE)
 
-# Legacy code?
+## Legacy code?
 
-tiff("figures/variation_estimates.tiff", res = 600, compression = "lzw",
+tiff("figures/variation_estimates_sim2_sd1.tiff", res = 600, compression = "lzw",
      unit = "in", height = 7, width = 7)
 emphasise_class + scale_x_discrete("Between class variation", labels = c(0.05, 0.15, 0.25))
 dev.off()
@@ -114,5 +115,5 @@ dev.off()
 
 ## Examine predictive distributions
 mean_scenario <- bind_cols(scenarios_names, mean_scenario)
-saveRDS(mean_scenario, "scratch_data/mean_scenario")
+saveRDS(mean_scenario, "scratch_data/mean_scenario_sim2_sd1")
 ## RE-run models for 05_05_05 and 

@@ -18,7 +18,7 @@ trials <- names(rheum)[substr(names(rheum), 1, 6) == "trial_"]
 drugs <- names(rheum)[substr(names(rheum), 1, 5) == "drug_"]
 
 # Choose fewer options to reduce number need to run
-paths <- paths[c(3)]    # Reduce number of scenarios by sampling only one level of variation at highest level
+paths <- paths[c(1,5)]    # Reduce number of scenarios by sampling only one level of variation at highest level
 moas <- moas[c(1,3,5)]
 trials <- trials[c(1,3,5)]  
 drugs <- drugs[c(1,3,5)]
@@ -58,7 +58,7 @@ print(c(das_smrs_sd, ibdq_smrs_sd))
 # but could presumably use 1 as diabetes (not sure how HB1c was scaled) - check
 # this with DM
 
-sd <- 0.2       ### This should come from real studies and depend on indication (i.e., on outcome IBDQ, DAS)
+sd <- 1       ### This should come from real studies and depend on indication (i.e., on outcome IBDQ, DAS)
       
 # calculate SE for comorbidity adn non-comorbidity group (same for placebo and treatment)
 
@@ -100,20 +100,20 @@ my_data <- data.frame(y_prec = inter_prec,
 
 ## Select only rheum variables need for each analysis
 rheum <- rheum [ , c("brd_drug_pth", "moa", "drug", "nct_id", "iteration")]
-save(my_data, myform_nested2, rheum, res, file = "data/sim2_for_inla.Rdata")
+save(my_data, myform_nested2, rheum, res, file = "data/sim2withpath_for_inla.Rdata")
 
 ### Create scripts to run on HPCC
 for(scenario in res_names) {
-  con <- file(description =  paste0("unix_scripts/sim2/",scenario, ".sh"), open = "wb")
+  con <- file(description =  paste0("unix_scripts/sim2/withpath/",scenario, ".sh"), open = "wb")
   top <- c("#!/bin/bash",
           "#PBS -l nodes=1:ppn=1:centos6",
           "#PBS -l cput=2:00:00")
   
-  act <- paste("/usr/bin/Rscript simuln/02b_run_inla_models.R",
-               ## act <- paste("/usr/bin/Rscript simuln/02c_run_inla_class_level.R",
+  act <- paste("/usr/bin/Rscript simuln/2_02b_run_inla_models.R",
+               ## act <- paste("/usr/bin/Rscript simuln/2_02c_run_inla_class_level.R",
                scenario,
                ##      "> /export/home/dma24j/run.output", sep = " ")
-               "&>> simuln/output_sim2.txt", sep = " ")
+               "&>> simuln/output_sim2withpath.txt", sep = " ")
   readr::write_lines(c(top, act), con)
   close(con)
 }

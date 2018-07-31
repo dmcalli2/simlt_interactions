@@ -47,9 +47,16 @@ colnames(res) <- res_names
 rownames(res) <- paste(rheum$brd_drug_pth, rheum$moa, rheum$drug, rheum$nct_id, rheum$iteration,
                        sep = "_")
 
-# Add in se term for interaction
-comorbidity_prev <- 0.2
+#Como_prevs
+como_prev <- c("hi")
+#como_prev <- c("std")
+#como_prev <- c("lo")
 
+comorbidity_prev <- ifelse(como_prev == "hi", 0.4, NA) #depression/anxiety
+comorbidity_prev <- ifelse(como_prev == "std", 0.2, comorbidity_prev)
+comorbidity_prev <- ifelse(como_prev == "low", 0.1, comorbidity_prev) #copd/repiratory conditions
+
+# Add in se term for interaction
 load("data/outcome_smrs_for_simulation.Rdata")
 print(c(das_smrs_sd, ibdq_smrs_sd))
 
@@ -100,11 +107,13 @@ my_data <- data.frame(y_prec = inter_prec,
 
 ## Select only rheum variables need for each analysis
 rheum <- rheum [ , c("brd_drug_pth", "moa", "drug", "nct_id", "iteration")]
-save(my_data, myform_nested2, rheum, res, file = "data/sim2withpath_for_inla.Rdata")
+save(my_data, myform_nested2, rheum, res, file = paste0("data/sim2/",como_prev,"/for_inla.Rdata"))
 
 ### Create scripts to run on HPCC
+count <- 0
 for(scenario in res_names) {
-  con <- file(description =  paste0("unix_scripts/sim2/withpath/",scenario, ".sh"), open = "wb")
+  count <- count + 1
+  con <- file(description =  paste0("unix_scripts/sim2/",como_prev,"/",count,"_",como_prev,"_",scenario, ".sh"), open = "wb")
   top <- c("#!/bin/bash",
           "#PBS -l nodes=1:ppn=1:centos6",
           "#PBS -l cput=2:00:00")
@@ -113,15 +122,18 @@ for(scenario in res_names) {
                ## act <- paste("/usr/bin/Rscript simuln/2_02c_run_inla_class_level.R",
                scenario,
                ##      "> /export/home/dma24j/run.output", sep = " ")
-               "&>> simuln/output_sim2withpath.txt", sep = " ")
+               "&>> simuln/output_sim2.txt", sep = " ")
   readr::write_lines(c(top, act), con)
   close(con)
 }
 # Metascript to run scripts
 # CAn run up to 50 at a time on short list
 # all take about 30 mins
-con <- file(description =  "unix_scripts/sim2/metascript.sh", open = "wb")
-metascript <- paste0("qsub simuln/", res_names, ".sh")
+a <- as.character(c(seq(1,length(res_names),1)))
+res_names2 <- paste(a,como_prev,res_names, sep="_")
+
+con <- file(description =  paste0("data/sim2/",como_prev,"/metascript.sh"), open = "wb")
+metascript <- paste0("qsub simuln/sim2/",como_prev,"/", res_names2, ".sh")
 readr::write_lines(metascript, con)
 close(con)
 

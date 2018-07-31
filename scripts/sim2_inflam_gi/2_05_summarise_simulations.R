@@ -69,10 +69,10 @@ scenario_res2 <- scenario_res_q %>%
          path = paste0("Broad_pth ", path)) %>% 
   as_tibble()
 
-pd <- position_dodge(width = 0.4)
+pd <- position_dodge(width = 0.8)
 
-emphasise_class <- ggplot(scenario_res2,
-                aes(x = moa, y = est, ymin = lci, ymax = uci, colour = result,
+  emphasise_class <- ggplot(scenario_res2,
+                aes(x = moa, y = est, ymin = lci, ymax = uci, colour = result, shape = path, 
                     alpha = my_alpha)) +
   geom_errorbar(position = pd) +
   geom_point(position = pd) +
@@ -80,8 +80,10 @@ emphasise_class <- ggplot(scenario_res2,
   scale_x_discrete("", labels = c(0.05, 0.15, 0.25)) +
   scale_y_continuous("Effect estimate") +
   scale_alpha(range = c(0.4, 1), guide = FALSE) +
+  theme_light() + 
   scale_colour_discrete("") 
-
+  emphasise_class
+  
 emphasise_trial <- emphasise_class %+% scenario_res2 +
   aes(x = trial) +
   facet_grid(moa ~ drug)

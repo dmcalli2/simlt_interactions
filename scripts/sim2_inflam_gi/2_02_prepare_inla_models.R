@@ -48,13 +48,13 @@ rownames(res) <- paste(rheum$brd_drug_pth, rheum$moa, rheum$drug, rheum$nct_id, 
                        sep = "_")
 
 #Como_prevs
-como_prev <- c("hi")
+#como_prev <- c("hi")
 #como_prev <- c("std")
-#como_prev <- c("lo")
+como_prev <- c("lo")
 
 comorbidity_prev <- ifelse(como_prev == "hi", 0.4, NA) #depression/anxiety
 comorbidity_prev <- ifelse(como_prev == "std", 0.2, comorbidity_prev)
-comorbidity_prev <- ifelse(como_prev == "low", 0.1, comorbidity_prev) #copd/repiratory conditions
+comorbidity_prev <- ifelse(como_prev == "lo", 0.1, comorbidity_prev) #copd/repiratory conditions
 
 # Add in se term for interaction
 load("data/outcome_smrs_for_simulation.Rdata")
@@ -120,7 +120,7 @@ for(scenario in res_names) {
   
   act <- paste("/usr/bin/Rscript simuln/2_02b_run_inla_models.R",
                ## act <- paste("/usr/bin/Rscript simuln/2_02c_run_inla_class_level.R",
-               scenario,
+               count,  como_prev ,scenario,
                ##      "> /export/home/dma24j/run.output", sep = " ")
                "&>> simuln/output_sim2.txt", sep = " ")
   readr::write_lines(c(top, act), con)
@@ -132,7 +132,7 @@ for(scenario in res_names) {
 a <- as.character(c(seq(1,length(res_names),1)))
 res_names2 <- paste(a,como_prev,res_names, sep="_")
 
-con <- file(description =  paste0("data/sim2/",como_prev,"/metascript.sh"), open = "wb")
+con <- file(description =  paste0("unix_scripts/sim2/",como_prev,"/metascript.sh"), open = "wb")
 metascript <- paste0("qsub simuln/sim2/",como_prev,"/", res_names2, ".sh")
 readr::write_lines(metascript, con)
 close(con)

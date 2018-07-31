@@ -2,12 +2,21 @@
 library(INLA)
 INLA:::inla.dynload.workaround() 
 with_args <- TRUE
-load(file = "data/sim2_for_inla.Rdata")
+
+#Como_prevs
+#como_prev <- c("hi")
+#como_prev <- c("std")
+como_prev <- c("lo")
+
+load(file = paste0("data/sim2/",como_prev,"/for_inla.Rdata"))
 ############ From now on putty, pass with args
 ## Loop through 6 scenarios, this will take approximately 3 hours
 
-choose_scenario <- "path_0.15_moa_0.05_trial_0.05_drug_0.05"
-if(with_args) choose_scenario <- commandArgs(trailingOnly=TRUE)
+argsd <- commandArgs(trailingOnly=TRUE)
+
+print(argsd)
+
+choose_scenario <- ifelse(with_args, argsd[3] , "path_0.25_moa_0.05_trial_0.05_drug_0.05")
 
 print(choose_scenario)
 
@@ -40,4 +49,4 @@ rheum$res <- res[, choose_scenario] + -0.1
     scenario[[iter]] <- summary(mod1_nested2)
  }
  # Saving each list as a data file
-  saveRDS(scenario, file = paste0("sim2_scenario_",choose_scenario, ".rds" ))
+  saveRDS(scenario, file = paste0("sim2_",argsd[1],argsd[2],choose_scenario, ".rds" ))

@@ -4,9 +4,9 @@ INLA:::inla.dynload.workaround()
 with_args <- TRUE
 
 #Como_prevs
-#como_prev <- c("hi")
+como_prev <- c("hi")
 #como_prev <- c("std")
-como_prev <- c("lo")
+#como_prev <- c("lo")
 
 load(file = paste0("data/sim2/",como_prev,"/for_inla.Rdata"))
 ############ From now on putty, pass with args
@@ -49,4 +49,5 @@ rheum$res <- res[, choose_scenario] + -0.1
     scenario[[iter]] <- summary(mod1_nested2)
  }
  # Saving each list as a data file
-  saveRDS(scenario, file = paste0("sim2_",argsd[1],argsd[2],choose_scenario, ".rds" ))
+ saveRDS(scenario, file = paste0("simuln/sim2/",como_prev,"/output/sim2_",argsd[1],"_",argsd[2],"_",choose_scenario, ".rds" ))
+ 

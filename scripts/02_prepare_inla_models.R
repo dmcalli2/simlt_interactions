@@ -42,7 +42,16 @@ rownames(res) <- paste(diabetes$atc_5, diabetes$drug, diabetes$nct_id, diabetes$
                        sep = "_")
 
 # Add in se term for interaction
-comorbidity_prev <- 0.2
+
+#Como_prevs
+como_prev <- c("hi")
+#como_prev <- c("std")
+#como_prev <- c("lo")
+
+comorbidity_prev <- ifelse(como_prev == "hi", 0.5, NA) #cardiovascular disease
+comorbidity_prev <- ifelse(como_prev == "std", 0.2, comorbidity_prev)
+comorbidity_prev <- ifelse(como_prev == "lo", 0.1, comorbidity_prev) #copd/repiratory condition
+
 sd <- 1
 # calculate SE for comorbidity adn non-comorbidity group (same for placebo and treatment)
 
@@ -83,30 +92,39 @@ my_data <- data.frame(y_prec = inter_prec,
 
 ## Select only diabetes variables need for each analysis
 diabetes <- diabetes [ , c("atc_5", "drug", "nct_id", "iteration")]
-save(my_data, myform_nested2, diabetes, res, file = "data/for_inla.Rdata")
+save(my_data, myform_nested2, diabetes, res, file = paste0("data/sim1/",como_prev,"/for_inla.Rdata"))
 
 ### Create scripts to run on HPCC
+
+count <- 0
 for(scenario in res_names) {
-  con <- file(description =  paste0("unix_scripts/",scenario, ".sh"), open = "wb")
+  count <- count + 1
+  con <- file(description =  paste0("unix_scripts/sim1/",como_prev,"/",count,"_",como_prev,"_",scenario, ".sh"), open = "wb")
   top <- c("#!/bin/bash",
-          "#PBS -l nodes=1:ppn=1:centos6",
-          "#PBS -l cput=2:00:00")
+           "#PBS -l nodes=1:ppn=1:centos6",
+           "#PBS -l cput=4:00:00",
+       "#PBS -l walltime=6:00:00") ## setting walltime at >4hrs is necessary for low prevalence runs, but should be avoided for others as it bumps up into the long queue
   
-  act <- paste("/usr/bin/Rscript simuln/02b_run_inla_models.R",
- ## act <- paste("/usr/bin/Rscript simuln/02c_run_inla_class_level.R",
-                            scenario,
-          ##      "> /export/home/dma24j/run.output", sep = " ")
-                  "&>> simuln/output.txt", sep = " ")
+  act <- paste("/usr/bin/Rscript", paste0("simuln/sim1/",como_prev,"/02b_run_inla_models.R"),
+               ## act <- paste("/usr/bin/Rscript simuln/2_02c_run_inla_class_level.R",
+               count,  como_prev ,scenario,
+               ##      "> /export/home/dma24j/run.output", sep = " ")
+               "&>>", paste0("simuln/sim1/",como_prev,"/output.txt"), sep = " ")
   readr::write_lines(c(top, act), con)
   close(con)
 }
+
 # Metascript to run scripts
 # CAn run up to 50 at a time on short list
 # all take about 30 mins
-con <- file(description =  "unix_scripts/metascript.sh", open = "wb")
-metascript <- paste0("qsub simuln/", res_names, ".sh")
+a <- as.character(c(seq(1,length(res_names),1)))
+res_names2 <- paste(a,como_prev,res_names, sep="_")
+
+con <- file(description =  paste0("unix_scripts/sim1/",como_prev,"/metascript.sh"), open = "wb")
+metascript <- paste0("qsub simuln/sim1/",como_prev,"/", res_names2, ".sh")
 readr::write_lines(metascript, con)
 close(con)
+
 
 
 

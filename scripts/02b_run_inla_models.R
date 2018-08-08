@@ -1,13 +1,22 @@
 #02b_run_inla_model
 library(INLA)
 INLA:::inla.dynload.workaround() 
-with_args <- FALSE
-load(file = "data/for_inla.Rdata")
+with_args <- TRUE
+
+#Como_prevs
+como_prev <- c("hi")
+#como_prev <- c("std")
+#como_prev <- c("lo")
+
+load(file = paste0("data/sim1/",como_prev,"/for_inla.Rdata"))
 ############ From now on putty, pass with args
 ## Loop through 6 scenarios, this will take approximately 3 hours
 
-choose_scenario <- "atc5_0.05_trial_0.05_drug_0.05"
-if(with_args) choose_scenario <- commandArgs(trailingOnly=TRUE)
+argsd <- commandArgs(trailingOnly=TRUE)
+
+print(argsd)
+
+choose_scenario <- ifelse(with_args, argsd[3] , "path_0.25_moa_0.05_trial_0.05_drug_0.05")
 
 print(choose_scenario)
 
@@ -16,7 +25,7 @@ print(choose_scenario)
 
 # Loop through each iteration
  scenario <- vector(length = 250, mode = "list")
- for (iter in 2:10){
+ for (iter in 1:1000){
 
     ## Add values for specific iteration
     my_data$y <-  diabetes$res[diabetes$iteration == iter]
@@ -39,5 +48,6 @@ print(choose_scenario)
     # Storing iterations in a single list
     scenario[[iter]] <- summary(mod1_nested2)
  }
- # Saving each list as a data file
-  saveRDS(scenario, file = paste0("scenario_",choose_scenario, ".rds" ))
+
+  # Saving each list as a data file
+  saveRDS(scenario, file = paste0("simuln/sim1/",como_prev,"/output/sim1_",argsd[1],"_",argsd[2],"_",choose_scenario, ".rds" ))

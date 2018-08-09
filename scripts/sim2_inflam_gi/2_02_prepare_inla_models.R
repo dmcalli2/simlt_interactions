@@ -18,10 +18,9 @@ trials <- names(rheum)[substr(names(rheum), 1, 6) == "trial_"]
 drugs <- names(rheum)[substr(names(rheum), 1, 5) == "drug_"]
 
 # Choose fewer options to reduce number need to run
-paths <- paths[c(3)]    ##Pick only one option for path and trial level at this stage
+paths <- paths[c(1,3,5)]    # Reduce number of scenarios by sampling only one level of variation at highest level
 moas <- moas[c(1,3,5)]
-trials <- trials[c(3)]  ##Not sure if this is the correct way of handling this, could be we need
-                        # to just avoid simulating interactions at these levels if not using them
+trials <- trials[c(1,3,5)]  
 drugs <- drugs[c(1,3,5)]
 
 # Create matrix of combinations
@@ -39,7 +38,7 @@ for (h in paths){
        rheum[ , i] +
        rheum[ , j] +
        rheum[ , k]
-    res_names[count] <- paste(i, j, k, sep = "_")
+    res_names[count] <- paste(h, i, j, k, sep = "_")
       }
     }  
   }
@@ -48,9 +47,25 @@ colnames(res) <- res_names
 rownames(res) <- paste(rheum$brd_drug_pth, rheum$moa, rheum$drug, rheum$nct_id, rheum$iteration,
                        sep = "_")
 
+#Como_prevs
+como_prev <- c("lo")
+#como_prev <- c("std")
+#como_prev <- c("hi")
+
+comorbidity_prev <- ifelse(como_prev == "hi", 0.4, NA) #depression/anxiety
+comorbidity_prev <- ifelse(como_prev == "std", 0.2, comorbidity_prev)
+comorbidity_prev <- ifelse(como_prev == "lo", 0.05, comorbidity_prev) #cardiovascular disease
+
 # Add in se term for interaction
-comorbidity_prev <- 0.2
-sd <- 1       ### This should come from real studies and depend on indication (i.e., on outcome IBDQ vs ACR)
+load("data/outcome_smrs_for_simulation.Rdata")
+print(c(das_smrs_sd, ibdq_smrs_sd))
+
+# Values of 0.14 and 0.17 from 'standardized' versions of DAS & IBDQ
+# If correct, I can't see value of distinguishing - will set to 0.2 here
+# but could presumably use 1 as diabetes (not sure how HB1c was scaled) - check
+# this with DM
+
+sd <- 1       ### Interpretation of this should come from real studies and depend on indication (i.e., on outcome IBDQ, DAS)
       
 # calculate SE for comorbidity adn non-comorbidity group (same for placebo and treatment)
 
@@ -92,26 +107,34 @@ my_data <- data.frame(y_prec = inter_prec,
 
 ## Select only rheum variables need for each analysis
 rheum <- rheum [ , c("brd_drug_pth", "moa", "drug", "nct_id", "iteration")]
-save(my_data, myform_nested2, rheum, res, file = "data/for_inla.Rdata")
+save(my_data, myform_nested2, rheum, res, file = paste0("data/sim2/",como_prev,"/for_inla.Rdata"))
 
 ### Create scripts to run on HPCC
+count <- 0
 for(scenario in res_names) {
-  con <- file(description =  paste0("unix_scripts/",scenario, ".sh"), open = "wb")
+  count <- count + 1
+  con <- file(description =  paste0("unix_scripts/sim2/",como_prev,"/",count,"_",como_prev,"_",scenario, ".sh"), open = "wb")
   top <- c("#!/bin/bash",
           "#PBS -l nodes=1:ppn=1:centos6",
-          "#PBS -l cput=2:00:00")
+          "#PBS -l cput=4:00:00",
+          "#PBS -l walltime=8:00:00") ## setting walltime at >4hrs is necessary for low prevalence runs, but should be avoided for others as it bumps up into the long queue
   
-  act <- paste("/usr/bin/Rscript simuln/02b_run_inla_models.R",
-               scenario,
-                "> /export/home/dma24j/run.output", sep = " ")
+  act <- paste("/usr/bin/Rscript", paste0("simuln/sim2/",como_prev,"/2_02b_run_inla_models.R"),
+               ## act <- paste("/usr/bin/Rscript simuln/2_02c_run_inla_class_level.R",
+               count,  como_prev ,scenario,
+               ##      "> /export/home/dma24j/run.output", sep = " ")
+               "&>>", paste0("simuln/sim2/",como_prev,"/output.txt"), sep = " ")
   readr::write_lines(c(top, act), con)
   close(con)
 }
 # Metascript to run scripts
 # CAn run up to 50 at a time on short list
 # all take about 30 mins
-con <- file(description =  "unix_scripts/metascript.sh", open = "wb")
-metascript <- paste0("qsub simuln/", res_names, ".sh")
+a <- as.character(c(seq(1,length(res_names),1)))
+res_names2 <- paste(a,como_prev,res_names, sep="_")
+
+con <- file(description =  paste0("unix_scripts/sim2/",como_prev,"/metascript.sh"), open = "wb")
+metascript <- paste0("qsub simuln/sim2/",como_prev,"/", res_names2, ".sh")
 readr::write_lines(metascript, con)
 close(con)
 

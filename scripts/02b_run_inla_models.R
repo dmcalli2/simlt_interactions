@@ -1,7 +1,7 @@
 #02b_run_inla_model
 library(INLA)
-INLA:::inla.dynload.workaround() 
-with_args <- TRUE
+#INLA:::inla.dynload.workaround() 
+with_args <- FALSE
 
 #Como_prevs
 como_prev <- c("hi")
@@ -16,7 +16,7 @@ argsd <- commandArgs(trailingOnly=TRUE)
 
 print(argsd)
 
-choose_scenario <- ifelse(with_args, argsd[3] , "path_0.25_moa_0.05_trial_0.05_drug_0.05")
+choose_scenario <- ifelse(with_args, argsd[3] , "atc5_0.05_trial_0.05_drug_0.05")
 
 print(choose_scenario)
 

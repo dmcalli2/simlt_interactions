@@ -8,7 +8,7 @@ with_args <- TRUE
 como_prev <- c("std")
 #como_prev <- c("lo")
 
-load(file = paste0("data/sim1/",como_prev,"/one_class_for_inla.Rdata"))
+load(file = paste0("data/sim2/",como_prev,"/one_class_for_inla.Rdata"))
 ############ From now on putty, pass with args
 ## Loop through 6 scenarios, this will take approximately 3 hours
 
@@ -21,14 +21,14 @@ choose_scenario <- ifelse(with_args, argsd[3] , "trial_0.25_drug_0.25")
 print(choose_scenario)
 
 # Add in wider drug group level effect to a chosen variation scenario
- sglt$res <- res[, choose_scenario] + -0.1
+ ilk17a$res <- res[, choose_scenario] + -0.1
 
 # Loop through each iteration
  scenario <- vector(length = 250, mode = "list")
  for (iter in 1:1000){
 
     ## Add values for specific iteration
-    my_data$y <-  sglt$res[sglt$iteration == iter]
+    my_data$y <-  ilk17a$res[ilk17a$iteration == iter]
     
     ## Run model, trial within drug within ATC5 class within ATC4 class
     mod1_nested2 <- inla(myform_nested2, 
@@ -50,4 +50,4 @@ print(choose_scenario)
  }
 
   # Saving each list as a data file
-  saveRDS(scenario, file = paste0("simuln/sim1/",como_prev,"/output/sim1_oneclass_",argsd[1],"_",argsd[2],"_",choose_scenario, ".rds" ))
+  saveRDS(scenario, file = paste0("simuln/sim2/",como_prev,"/output/sim2_oneclass_",argsd[1],"_",argsd[2],"_",choose_scenario, ".rds" ))

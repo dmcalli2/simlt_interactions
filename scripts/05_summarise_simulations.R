@@ -4,7 +4,7 @@ library(stringr)
 library(ggplot2)
 
 # Identify saved results
-scenarios <- list.files("unix_results/sim1/", patt = "scen")
+scenarios <- list.files("unix_results/sim1/como_prev_std/", patt = "scen")
 
 ScenarioNames <- function (scenarios) {
   scenarios_names <- str_split_fixed( str_sub(scenarios, 1, -5), "_", n = 7)
@@ -18,7 +18,7 @@ scenarios_names <- ScenarioNames(scenarios)
 
 # read and convert to data frame for each scenario
 scenario_res <- lapply(scenarios, function(each_scenario){
-  each_scenario <- readRDS(paste0("unix_results/sim1/", each_scenario))})
+  each_scenario <- readRDS(paste0("unix_results/sim1/como_prev_std/", each_scenario))})
 
 scenario_res <- map(scenario_res, function (scen){
   fxd <- map(scen, ~ .x$fixed) 

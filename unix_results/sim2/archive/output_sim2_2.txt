@@ -1,0 +1,34 @@
+Loading required package: sp
+Loading required package: methods
+Loading required package: Matrix
+This is INLA_17.06.20 built 2018-06-12 12:13:57 UTC.
+See www.r-inla.org/contact-us for how to get help.
+[1] "path_0.15_moa_0.05_trial_0.05_drug_0.05"
+Loading required package: sp
+Loading required package: methods
+Loading required package: Matrix
+This is INLA_17.06.20 built 2018-06-12 12:13:57 UTC.
+See www.r-inla.org/contact-us for how to get help.
+[1] "path_0.15_moa_0.15_trial_0.05_drug_0.05"
+
+
+	GMRFLib version 3.0-0-snapshot, has recived error no [21]
+	Reason    : This should not happen
+	Messag[1] "path_0.15_moa_0.05_trial_0.05_drug_0.15"
+unction  : GMRFLib_density_Pinv
+	File      : density.c
+	Line      : 964
+	RCSId     : file: density.c  hgid: 29c6a7f1b1ff  date: Thu Jun 15 19:50:23 2017 +0800
+
+sh: line 1: 12684 Aborted                 '/export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/inla.static' -b -s -v '/tmp/Rtmp0QbmE5/file3100a4a563d/Model.ini' > /tmp/Rtmp0QbmE5/file3100a4a563d/Logfile.txt
+Error in inla.inlaprogram.has.crashed() : 
+  The inla-program exited with an error. Unless you interupted it yourself, please rerun with verbose=TRUE and check the output carefully.
+  If this does not help, please contact the developers at <help@r-inla.org>.
+Calls: inla -> inla.inlaprogram.has.crashed
+Execution halted
+Loading required package: sp
+Loading required package: methods
+Loading required package: Matrix
+This is INLA_17.06.20 built 2018-06-12 12:13:57 UTC.
+See www.r-inla.org/contact-us for how to get help.
+[1] "path_0.15_moa_0.15_trial_0.05_drug_0.25"

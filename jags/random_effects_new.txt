@@ -1,0 +1,17 @@
+
+model{
+for (z in 1:3){
+   # likelihood
+   y[z] ~ dnorm(wd[z], y_prec[z])
+   # link and linear predictor
+   # Shared priors (random effects)
+   wd[z] ~ dnorm(wd_delta, wd_tau)
+} #end of trials
+   # Meta-analysis level priors
+ 
+   wd_delta ~ dt(m, 1/s^2, d)
+   wd_tau <-  1/wd_var
+   wd_var ~ dlnorm(-3.23, 1/1.88^2)
+   wd_sd <- wd_var^0.5
+}# end of model
+

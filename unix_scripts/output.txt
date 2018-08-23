@@ -1,0 +1,53 @@
+Loading required package: sp
+Loading required package: methods
+Loading required package: Matrix
+This is INLA_17.06.20 built 2018-06-12 12:13:57 UTC.
+See www.r-inla.org/contact-us for how to get help.
+/export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/inla: /usr/lib64/libgfortran.so.3: version `GFORTRAN_1.4' not found (required by /export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/inla)
+/export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/inla: /lib64/libc.so.6: version `GLIBC_2.14' not found (required by /export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/inla)
+/export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/inla: /usr/lib64/libstdc++.so.6: version `GLIBCXX_3.4.15' not found (required by /export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/inla)
+/export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/inla: /lib64/libc.so.6: version `GLIBC_2.14' not found (required by /export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/libgsl.so.19)
+Error in inla.inlaprogram.has.crashed() : 
+  The inla-program exited with an error. Unless you interupted it yourself, please rerun with verbose=TRUE and check the output carefully.
+  If this does not help, please contact the developers at <help@r-inla.org>.
+Calls: inla -> inla.inlaprogram.has.crashed
+Execution halted
+Loading required package: sp
+Loading required package: methods
+Loading required package: Matrix
+This is INLA_17.06.20 built 2018-06-12 12:13:57 UTC.
+See www.r-inla.org/contact-us for how to get help.
+/export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/inla: /usr/lib64/libgfortran.so.3: version `GFORTRAN_1.4' not found (required by /export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/inla)
+/export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/inla: /lib64/libc.so.6: version `GLIBC_2.14' not found (required by /export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/inla)
+/export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/inla: /usr/lib64/libstdc++.so.6: version `GLIBCXX_3.4.15' not found (required by /export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/inla)
+/export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/inla: /lib64/libc.so.6: version `GLIBC_2.14' not found (required by /export/home/lh222b/R/x86_64-redhat-linux-gnu-library/3.4/INLA/bin/linux/64bit/libgsl.so.19)
+Error in inla.inlaprogram.has.crashed() : 
+  The inla-program exited with an error. Unless you interupted it yourself, please rerun with verbose=TRUE and check the output carefully.
+  If this does not help, please contact the developers at <help@r-inla.org>.
+Calls: inla -> inla.inlaprogram.has.crashed
+Execution halted
+Loading required package: sp
+Loading required package: methods
+Loading required package: Matrix
+This is INLA_17.06.20 built 2018-06-12 12:13:57 UTC.
+See www.r-inla.org/contact-us for how to get help.
+  atc_5      drug      nct_id iteration         res
+1 A10BA metformin NCT00819741         1  0.07583446
+2 A10BA metformin NCT00819741         2 -0.10272501
+3 A10BA metformin NCT00819741         3 -0.18901828
+4 A10BA metformin NCT00819741         4 -0.08030144
+5 A10BA metformin NCT00819741         5 -0.05860986
+6 A10BA metformin NCT00819741         6 -0.21930943
+Loading required package: sp
+Loading required package: methods
+Loading required package: Matrix
+This is INLA_17.06.20 built 2018-06-12 12:13:57 UTC.
+See www.r-inla.org/contact-us for how to get help.
+[1] "atc5_0.25_trial_0.25_drug_0.25"
+  atc_5      drug      nct_id iteration         res
+1 A10BA metformin NCT00819741         1 -0.71582239
+2 A10BA metformin NCT00819741         2  0.79300151
+3 A10BA metformin NCT00819741         3  0.41506509
+4 A10BA metformin NCT00819741         4 -0.02956273
+5 A10BA metformin NCT00819741         5  0.05616428
+6 A10BA metformin NCT00819741         6  0.49602568

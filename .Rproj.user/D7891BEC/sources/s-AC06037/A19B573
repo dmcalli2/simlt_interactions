@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1531846644701.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "A19B573",
+    "lastKnownWriteTime" : 1531738463,
+    "last_content_update" : 1531738463,
+    "path" : "C:/Users/Laurie Hannigan/OneDrive - University of Glasgow/Projects/simulation_ix/simlt_interactions/scripts/sim2_inflam_gi/2_02b_run_inla_models.R",
+    "project_path" : "scripts/sim2_inflam_gi/2_02b_run_inla_models.R",
+    "properties" : {
+        "cursorPosition" : "2,0",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 11,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

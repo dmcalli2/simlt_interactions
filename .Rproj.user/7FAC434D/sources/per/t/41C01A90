@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1534786677589.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1709966265",
+    "id" : "41C01A90",
+    "lastKnownWriteTime" : 1534787914,
+    "last_content_update" : 1534787914,
+    "path" : "C:/Users/lh222b/OneDrive - University of Glasgow/Projects/simulation_ix/simlt_interactions/scripts/02_prepare_inla_models_one_class.R",
+    "project_path" : "scripts/02_prepare_inla_models_one_class.R",
+    "properties" : {
+        "cursorPosition" : "95,0",
+        "scrollLine" : "88"
+    },
+    "relative_order" : 8,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

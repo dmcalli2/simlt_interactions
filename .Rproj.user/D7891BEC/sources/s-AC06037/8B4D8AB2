@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1531997519812.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "8B4D8AB2",
+    "lastKnownWriteTime" : 1531999181,
+    "last_content_update" : 1531999181112,
+    "path" : "C:/Users/Laurie Hannigan/OneDrive - University of Glasgow/Projects/simulation_ix/simlt_interactions/scripts/05_summarise_simulations.R",
+    "project_path" : "scripts/05_summarise_simulations.R",
+    "properties" : {
+        "cursorPosition" : "95,9",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 9,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

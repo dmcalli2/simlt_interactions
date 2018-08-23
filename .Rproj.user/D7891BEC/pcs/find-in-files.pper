@@ -1,0 +1,10 @@
+{
+    "dialog-state" : {
+        "caseSensitive" : false,
+        "filePatterns" : [
+        ],
+        "path" : "C:/Users/Laurie Hannigan/OneDrive - University of Glasgow/Projects/simulation_ix/simlt_interactions",
+        "query" : "scenarios",
+        "regex" : false
+    }
+}

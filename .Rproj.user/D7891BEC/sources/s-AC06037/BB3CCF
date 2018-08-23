@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1531999044527.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "BB3CCF",
+    "lastKnownWriteTime" : 1518698153,
+    "last_content_update" : 1518698153,
+    "path" : "C:/Users/Laurie Hannigan/OneDrive - University of Glasgow/Projects/simulation_ix/simlt_interactions/scripts/06_show_imacpt_prior_from_simulations.R",
+    "project_path" : "scripts/06_show_imacpt_prior_from_simulations.R",
+    "properties" : {
+        "cursorPosition" : "16,13",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 12,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

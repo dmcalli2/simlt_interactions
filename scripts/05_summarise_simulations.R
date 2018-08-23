@@ -4,31 +4,61 @@ library(stringr)
 library(ggplot2)
 
 # Identify saved results
-scenarios <- list.files("unix_results/sim1/como_prev_std/", patt = "scen")
+sim1_scenarios <- list.files("unix_results/sim1/", recursive=TRUE, pattern = "sim1")
+sim1_oneclass_scenarios <- list.files("unix_results/sim1/", recursive=TRUE, pattern = "oneclass")
+sim1_scenarios <- setdiff(sim1_scenarios,sim1_oneclass_scenarios)
 
-ScenarioNames <- function (scenarios) {
-  scenarios_names <- str_split_fixed( str_sub(scenarios, 1, -5), "_", n = 7)
-  scenarios_names <- apply(scenarios_names[, c(3, 5, 7)], 2, as.double)
+sim2_scenarios <- list.files("unix_results/sim2/", recursive=TRUE, pattern = "sim2")
+sim2_oneclass_scenarios <- list.files("unix_results/sim2/", recursive=TRUE, pattern = "oneclass")
+sim2_scenarios <- setdiff(sim2_scenarios,sim2_oneclass_scenarios)
+
+
+ScenarioNames <- function (scenarios, sim) {
+  if(sim==1){ scenarios_names <-  str_split_fixed( str_sub(scenarios, -37, -5), "_", n = 7)
+  scenarios_names <- cbind(scenarios_names[,1],apply(scenarios_names[, c(3, 5, 7)], 2, as.double))
   scenarios_names <- as.data.frame(scenarios_names)
-  names(scenarios_names) <- c("atc5", "trial", "drug")
+  names(scenarios_names) <- c("como_prev","atc5/moa", "trial", "drug")
+  }
+  else if(sim == 2) {scenarios_names <-  str_split_fixed( str_sub(scenarios, -46, -5), "_", n = 9)
+  scenarios_names <- cbind(scenarios_names[,1],apply(scenarios_names[, c(3, 5, 7, 9)], 2, as.double))
+  scenarios_names <- as.data.frame(scenarios_names)
+  names(scenarios_names) <- c("como_prev","path","atc5/moa", "trial", "drug")
+  }
   scenarios_names
 }
 
-scenarios_names <- ScenarioNames(scenarios)
+sim1_scenarios_names <- s1ScenarioNames(sim1_scenarios,sim=1)
+sim2_scenarios_names <- s1ScenarioNames(sim2_scenarios,sim=2)
 
 # read and convert to data frame for each scenario
-scenario_res <- lapply(scenarios, function(each_scenario){
-  each_scenario <- readRDS(paste0("unix_results/sim1/como_prev_std/", each_scenario))})
+sim1_scenario_res <- lapply(sim1_scenarios, function(each_scenario){
+  each_scenario <- readRDS(paste0("unix_results/sim1/", each_scenario))})
 
-scenario_res <- map(scenario_res, function (scen){
+sim1_scenario_res <- map(sim1_scenario_res, function (scen){
   fxd <- map(scen, ~ .x$fixed) 
   fxd <- do.call(rbind, fxd)
   fxd <- as.tibble(fxd) %>% 
   mutate(iter = 1:1000)
   fxd
 })
-names(scenario_res) <- scenarios
-scenario_res <- bind_rows(scenario_res, .id = "scenario")
+names(sim1_scenario_res) <- str_sub(sim1_scenarios, -37, -5)
+sim1_scenario_res <- bind_rows(sim1_scenario_res, .id = "scenario")
+
+# read and convert to data frame for each scenario
+sim2_scenario_res <- lapply(sim2_scenarios, function(each_scenario){
+  each_scenario <- readRDS(paste0("unix_results/sim2/", each_scenario))})
+
+sim2_scenario_res <- map(sim2_scenario_res, function (scen){
+  fxd <- map(scen, ~ .x$fixed) 
+  fxd <- do.call(rbind, fxd)
+  fxd <- as.tibble(fxd) %>% 
+    mutate(iter = 1:1000)
+  fxd
+})
+names(sim2_scenario_res) <- str_sub(sim2_scenarios, -46, -5)
+sim2_scenario_res <- bind_rows(sim2_scenario_res, .id = "scenario")
+
+
 
 # Find the iteration when got the mean value (or closest to it)
 mean_scenario <- scenario_res %>% 

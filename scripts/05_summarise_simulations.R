@@ -17,18 +17,18 @@ ScenarioNames <- function (scenarios, sim) {
   if(sim==1){ scenarios_names <-  str_split_fixed( str_sub(scenarios, -37, -5), "_", n = 7)
   scenarios_names <- cbind(scenarios_names[,1],apply(scenarios_names[, c(3, 5, 7)], 2, as.double))
   scenarios_names <- as.data.frame(scenarios_names)
-  names(scenarios_names) <- c("como_prev","atc5/moa", "trial", "drug")
+  names(scenarios_names) <- c("como_prev","atc5_moa", "trial", "drug")
   }
   else if(sim == 2) {scenarios_names <-  str_split_fixed( str_sub(scenarios, -46, -5), "_", n = 9)
   scenarios_names <- cbind(scenarios_names[,1],apply(scenarios_names[, c(3, 5, 7, 9)], 2, as.double))
   scenarios_names <- as.data.frame(scenarios_names)
-  names(scenarios_names) <- c("como_prev","path","atc5/moa", "trial", "drug")
+  names(scenarios_names) <- c("como_prev","path","atc5_moa", "trial", "drug")
   }
   scenarios_names
 }
 
-sim1_scenarios_names <- s1ScenarioNames(sim1_scenarios,sim=1)
-sim2_scenarios_names <- s1ScenarioNames(sim2_scenarios,sim=2)
+sim1_scenarios_names <- ScenarioNames(sim1_scenarios,sim=1)
+sim2_scenarios_names <- ScenarioNames(sim2_scenarios,sim=2)
 
 # read and convert to data frame for each scenario
 sim1_scenario_res <- lapply(sim1_scenarios, function(each_scenario){
@@ -58,7 +58,27 @@ sim2_scenario_res <- map(sim2_scenario_res, function (scen){
 names(sim2_scenario_res) <- str_sub(sim2_scenarios, -46, -5)
 sim2_scenario_res <- bind_rows(sim2_scenario_res, .id = "scenario")
 
+#Tidy up and combine
 
+sim1_scenario_res <- sim1_scenario_res %>%
+  mutate(como_prev = str_sub(scenario, 1, 2),
+         atc_moa = str_sub(scenario, 9, 12),
+         trial = str_sub(scenario, 20,23),
+         drug = str_sub(scenario, 30, 33),
+         path = "0",
+         sim = 1)
+
+sim2_scenario_res <- sim2_scenario_res %>%
+  mutate(como_prev = str_sub(scenario, 1, 2),
+         path = str_sub(scenario, 9, 12),
+         atc_moa = str_sub(scenario, 18,21),
+         trial = str_sub(scenario, 29, 32),
+         drug = str_sub(scenario, 39, 42),
+         sim = 2)
+
+scenario_res <- sim1_scenario_res %>%
+  bind_rows(sim2_scenario_res) %>%
+  mutate(como_prev = ifelse(como_prev %in% "td", "std", como_prev))
 
 # Find the iteration when got the mean value (or closest to it)
 mean_scenario <- scenario_res %>% 
@@ -82,34 +102,50 @@ scenario_res_q <- scenario_res_q %>%
   separate(scenario_new, into = c("stat", "smry"), sep = "_")
 
 ## Separate names
-scenario_names_lng <- ScenarioNames(scenario_res_q$scenario)
-scenario_res_q <- bind_cols(scenario_names_lng, scenario_res_q)
+scenario_names_lng <- ScenarioNames(scenario_res_q$scenario, sim=1)
+scenario_res_q <- scenario_res_q %>%
+  left_join(scenario_res %>%
+              distinct(sim, como_prev, path, atc_moa, drug, trial, .keep_all=TRUE) %>%
+              select(scenario,sim, como_prev, path, atc_moa, drug, trial))
+
+scenario_res_q$como_prev <- as.factor(scenario_res_q$como_prev)
+scenario_res_q$como_prev <- factor(scenario_res_q$como_prev,levels(scenario_res_q$como_prev)[c(1,3,2)])                  
+
 
 ## Spreadstatistic to wide
 scenario_res_q <- scenario_res_q %>% 
   spread(key = smry, value = value)
 
 scenario_res2 <- scenario_res_q %>% 
-  mutate(trial_drug = trial + atc5,
-         result = factor(stat, levels = c("0.025quant", "mean", "0.975quant")),
+  mutate(result = factor(stat, levels = c("0.025quant", "mean", "0.975quant")),
          my_alpha = if_else(result == "mean", 1, 0),
-         trial = paste0("Trial ", trial),
-         drug = paste0("Drug ", drug),
-         atc5 = paste0("Class ", atc5)) %>% 
-  as_tibble()
+         Trial = paste0("Trial ", trial),
+         Drug = paste0("Drug ", drug),
+         Atc_moa = paste0("Class ", atc_moa),
+         path = as.numeric(path),
+         atc_moa = as.numeric(atc_moa),
+         drug = as.numeric(drug),
+         trial = as.numeric(trial),
+         total_vrn = (path+atc_moa+drug+trial)) %>% 
+  filter(como_prev=="std") %>%    ##### Comorbidity prevalence makes no difference to how close the closest
+  as_tibble()                     ##### iteration gets to the mean for each scenario, so drop hi/lo here
 
-pd <- position_dodge(width = 0.4)
+pd <- position_dodge(width = 1)
+
+scenario_res2$path <- as.character(scenario_res2$path)
 
 emphasise_class <- ggplot(scenario_res2,
-                aes(x = atc5, y = est, ymin = lci, ymax = uci, colour = result,
-                    alpha = my_alpha)) +
+                          aes(x = Atc_moa, y = est, ymin = lci, ymax = uci, colour = result,
+                              alpha = my_alpha, shape = path)) +
   geom_errorbar(position = pd) +
   geom_point(position = pd) +
-  facet_grid(trial ~ drug) +
+  facet_grid(sim ~ Trial + Drug ) +
   scale_x_discrete("", labels = c(0.05, 0.15, 0.25)) +
   scale_y_continuous("Effect estimate") +
   scale_alpha(range = c(0.4, 1), guide = FALSE) +
   scale_colour_discrete("") 
+
+emphasise_class
 
 emphasise_trial <- emphasise_class %+% scenario_res2 +
   aes(x = trial) +

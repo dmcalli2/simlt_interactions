@@ -16,9 +16,11 @@ mean_scenario <- mean_scenario %>%
 #02b_run_inla_model
 
 # INLA:::inla.dynload.workaround() 
-load(file = "data/for_inla.Rdata")
+# load(file = "data/for_inla.Rdata")
+load(file = "data/sim1/std/for_inla.Rdata")
 
-## Loop through mean for 3 scenarios
+
+## Loop through mean for 3 scenarios and iterations
 mdls <- map(1:3, function (i) {
   scenario <- mean_scenario$scenario[i]
   iter <- mean_scenario$iter[i]
@@ -76,23 +78,23 @@ mdl_t <- map(mdls, function(mdl_each){
   # Extract results
   mdl_res_each <- mdl_each$summary.lincomb
   # Fit data, using mean and sd and df 3 for initial values
-  a <- nls(formula = y ~ metRology::dt.scaled(x, df = d, mean = m, sd = s),
-         data = res, start = list(d = 3, m = mdl_res_each$mean, s = mdl_res_each$sd/2),
-         algorithm = "port", lower = list(d = 2, m = -5, s = 0))
+  a <- nls(formula = y ~ metRology::dt.scaled(x, df = 3, mean = m, sd = s),
+         data = res, start = list(m = mdl_res_each$mean, s = mdl_res_each$sd/2),
+         algorithm = "port", lower = list(m = -5, s = 0))
   a <- summary(a)
   a <- a$coefficients[,"Estimate"]
   
   # Add estimates to dataframe for comparison
-  res$y_new <- metRology::dt.scaled(res$x, df = a["d"], mean = a["m"], sd = a["s"])
+  res$y_new <- metRology::dt.scaled(res$x, df = 3, mean = a["m"], sd = a["s"])
 
   # Plot and return parameters and data
-  plot(res$x, res$y, main = paste(c("df", "m", "s"), round(a,2), sep = " = ", collapse = ", "))
+  plot(res$x, res$y, main = paste(c("df", "m", "s"), c(3, round(a,2)), sep = " = ", collapse = ", "))
   lines(res$x, res$y_new, col = "red")
   
   # Make new dataset with more points
   res_new <- tibble(x = seq(-2, 2, 0.005))
   res_new <- res_new %>% 
-    mutate(y = metRology::dt.scaled(x, df = a["d"], mean = a["m"], sd = a["s"]))
+    mutate(y = metRology::dt.scaled(x, df = 3, mean = a["m"], sd = a["s"]))
   # Parameters and data
   list(param = a, res = res_new)
 })
@@ -111,3 +113,26 @@ plot1
 saveRDS(mdl_t, file = "scratch_data/Priors_for_examining_class.Rds")
 
 ## Random 
+
+
+#quantile version
+qres <- data.frame(y = c(0.025, 0.5, 0.975),
+                   x = c( -0.2867,  -0.0963,     0.0631))
+
+res2 <- nls(formula = y ~ metRology::pt.scaled(x, df = 3, mean = m, sd = s),
+       data = qres, start = list(m = -0.1, s = 0.2),
+       algorithm = "port", lower = list(m = -5, s = 0))
+summary(res2)
+a <- summary(res2)
+a <- a$coefficients[,"Estimate"]
+
+qres_new <- data.frame(x = seq(-1, 1, 0.1))
+qres_new <- qres_new %>% 
+  mutate(y = metRology::pt.scaled(x, df = 3, mean = a["m"], sd = a["s"]))
+plot(qres_new$x, qres_new$y, type = "l")
+points(qres$x, qres$y, col = "red")
+
+qres_samples = metRology::rt.scaled(1000, df = 3, mean = a["m"], sd = a["s"])
+hist(qres_samples)
+mean(qres_samples)
+sd(qres_samples)

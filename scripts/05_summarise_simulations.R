@@ -127,8 +127,8 @@ scenario_res2 <- scenario_res_q %>%
          drug = as.numeric(drug),
          trial = as.numeric(trial),
          total_vrn = (path+atc_moa+drug+trial)) %>% 
-  filter(como_prev=="std") %>%    ##### Comorbidity prevalence makes no difference to how close the closest
-  as_tibble()                     ##### iteration gets to the mean for each scenario, so drop hi/lo here
+  filter(como_prev %in% c("lo","hi")) %>%    ##### Comorbidity prevalence appears to make no difference
+  as_tibble()                     #####  so drop hi/lo here
 
 pd <- position_dodge(width = 1)
 
@@ -136,16 +136,19 @@ scenario_res2$path <- as.character(scenario_res2$path)
 
 emphasise_class <- ggplot(scenario_res2,
                           aes(x = Atc_moa, y = est, ymin = lci, ymax = uci, colour = result,
-                              alpha = my_alpha, shape = path)) +
+                              alpha = my_alpha, shape = como_prev)) +
   geom_errorbar(position = pd) +
   geom_point(position = pd) +
-  facet_grid(sim ~ Trial + Drug ) +
+  facet_grid(sim+ path ~  Trial + Drug  ) +
   scale_x_discrete("", labels = c(0.05, 0.15, 0.25)) +
   scale_y_continuous("Effect estimate") +
   scale_alpha(range = c(0.4, 1), guide = FALSE) +
   scale_colour_discrete("") 
 
 emphasise_class
+
+
+########## modified for both sims to here
 
 emphasise_trial <- emphasise_class %+% scenario_res2 +
   aes(x = trial) +

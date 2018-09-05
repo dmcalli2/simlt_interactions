@@ -80,6 +80,8 @@ scenario_res <- sim1_scenario_res %>%
   bind_rows(sim2_scenario_res) %>%
   mutate(como_prev = ifelse(como_prev %in% "td", "std", como_prev))
 
+saveRDS(scenario_res, "scratch_data/scenario_res")
+
 # Find the iteration when got the mean value (or closest to it)
 mean_scenario <- scenario_res %>% 
   group_by(scenario) %>% 

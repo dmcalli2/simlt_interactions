@@ -23,7 +23,7 @@ load(file = "data/sim1/std/for_inla.Rdata")
 ## Loop through mean for 3 scenarios and iterations
 mdls <- map(1:3, function (i) {
   scenario <- mean_scenario$scenario[i]
-  iter <- mean_scenario$iter[i]
+  iter <- mean_scenario$iter[1]
   
   # Add in main effect to a chosen variation scenario and select relevant classes
   diabetes$res <- res[, scenario] + -0.1
@@ -32,9 +32,16 @@ mdls <- map(1:3, function (i) {
   no_a10bx <- diabetes
   no_a10bx$res[diabetes$atc_5 %in% c("A10BX")] <- NA
   
-  # Make linear combination
-  dc1 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, NA, 1)) 
+  no_a10bx %>% 
+    distinct(atc_5, drug)
   
+  # Make linear combination
+  dc1 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, NA, 1), 
+                           mydrug = c(rep(NA, 23), 1)) 
+  
+  dc2 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, NA, 1), 
+                           mydrug = c(rep(NA, 22), 1, NA)) 
+    
   # Select iteration
   ## Add values for specific iteration
   my_data$y <-  no_a10bx$res[no_a10bx$iteration == iter]
@@ -43,7 +50,7 @@ mdls <- map(1:3, function (i) {
   mod1_nested2 <- inla(myform_nested2, 
                        data = my_data,
                        # Add linear combinations to estimate drug-class
-                       lincomb = dc1,
+                       lincomb = c(a = dc1, b = dc2),
                        # Likelihood distribution
                        family = "gaussian",
                        # Fix likelihood hyperpars as the data is fixed with known precision.

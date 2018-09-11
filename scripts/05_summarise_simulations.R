@@ -80,7 +80,7 @@ scenario_res <- sim1_scenario_res %>%
   bind_rows(sim2_scenario_res) %>%
   mutate(como_prev = ifelse(como_prev %in% "td", "std", como_prev))
 
-saveRDS(scenario_res, "scratch_data/scenario_res")
+saveRDS(scenario_res, "scratch_data/scenario_res.Rds")
 
 # Find the iteration when got the mean value (or closest to it)
 mean_scenario <- scenario_res %>% 
@@ -127,8 +127,7 @@ scenario_res2 <- scenario_res_q %>%
          path = as.numeric(path),
          atc_moa = as.numeric(atc_moa),
          drug = as.numeric(drug),
-         trial = as.numeric(trial),
-         total_vrn = (path+atc_moa+drug+trial)) %>% 
+         trial = as.numeric(trial)) %>% 
   filter(como_prev %in% c("lo","hi")) %>%    ##### Comorbidity prevalence appears to make no difference
   as_tibble()                     #####  so drop hi/lo here
 
@@ -144,11 +143,38 @@ emphasise_class <- ggplot(scenario_res2,
   facet_grid(sim+ path ~  Trial + Drug  ) +
   scale_x_discrete("", labels = c(0.05, 0.15, 0.25)) +
   scale_y_continuous("Effect estimate") +
-  scale_alpha(range = c(0.4, 1), guide = FALSE) +
+  scale_alpha(range = c(0.4, 1), guide = FALSE) + 
   scale_colour_discrete("") 
 
 emphasise_class
 
+
+# Ascertain total variation for each scenario and sort by this
+
+scen_res_sum <- scenario_res %>%
+  group_by(scenario) %>%
+  summarise(total_vrn = mean(sd)) %>%
+  inner_join(scenario_res_q %>% 
+               select(scenario,sim,como_prev,est,stat,lci,uci)) %>%
+  filter(como_prev=="std")
+
+scen_res_sum$sim <- as.factor(scen_res_sum$sim)
+levels(scen_res_sum$sim)[levels(scen_res_sum$sim)==1] <- "Diabetes"
+levels(scen_res_sum$sim)[levels(scen_res_sum$sim)==2]   <- "Inflammatory conditions"
+  
+ggplot() +
+  geom_point(data=scen_res_sum, aes(x=reorder(scenario,total_vrn),y=est, colour=stat))+
+  geom_errorbar(data=scen_res_sum, aes(x= reorder(scenario,total_vrn), ymax=uci,ymin=lci, colour= stat)) +
+  facet_wrap(~sim, scales= "free_x")  + 
+  theme(axis.text.x = element_blank(), 
+        axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(margin = margin(t = 0, r = 30, b = , l = 0)),
+        text =element_text(size = 14.5),
+        panel.background = element_rect(fill = "white", colour = "grey80")) +
+  scale_y_continuous(breaks=seq(-1.5,1.5,0.1)) +
+  xlab("Simulated scenarios, ordered by total simulated variation")+
+  ylab("Interaction effect estimate from model")+ 
+  geom_hline(yintercept = -0.1, linetype = "dashed", color = "black")
 
 ########## modified for both sims to here
 

@@ -4,31 +4,54 @@ library(tidyverse)
 library(INLA)
 library(stringr)
 
-mean_scenario <- readRDS("scratch_data/mean_scenario")
+mean_scenarios <- readRDS("scratch_data/mean_scenario")
+key_scens <- readRDS("scratch_data/key_scens")
 
-mean_scenario <- mean_scenario %>% 
-  filter(scenario %in% c("scenario_atc5_0.05_trial_0.05_drug_0.15.rds",
-                         "scenario_atc5_0.15_trial_0.15_drug_0.15.rds",
-                         "scenario_atc5_0.25_trial_0.25_drug_0.15.rds" )) %>% 
-  mutate(scenario = str_sub(scenario, 10, -5))
+key_scens_list <-key_scens %>%
+  filter(como_prev=="std") %>%
+  select(scenario)
+dput(as.vector(key_scens_list$scenario))
+
+
+mean_scenario <- mean_scenarios %>% 
+  filter(scenario %in% key_scens_list$scenario) %>% 
+  mutate(scenario = str_sub(scenario, 4, -1L))
 # Identify mean for each scenarios
 
 #02b_run_inla_model
 
 # INLA:::inla.dynload.workaround() 
 # load(file = "data/for_inla.Rdata")
+
+#Separate for each sim from here
+
+mean_scenario_s1 <- mean_scenario %>%
+  filter(sim==1)
+
 load(file = "data/sim1/std/for_inla.Rdata")
 
+## NEW CLASS (dc1) NEW DRUG IN NEW CLASS (dc2) NEW DRUG IN EXISTING CLASS (dc3) 
 
-## Loop through mean for 3 scenarios and iterations
+diabetes_abc <- diabetes%>% 
+  distinct(atc_5, drug) %>%
+  mutate(newdrug = paste0(row_number(),drug))
+
+diabetes <- diabetes %>%
+  left_join(diabetes_abc) %>%
+  select(-drug) %>%
+  rename(drug = newdrug)
+
+## Loop through mean for 3 scenarios, single iteration for each
 mdls <- map(1:3, function (i) {
-  scenario <- mean_scenario$scenario[i]
-  iter <- mean_scenario$iter[1]
+  scenario <- mean_scenario_s1$scenario[i]
+  iter <- mean_scenario_s1$iter[i]
   
   # Add in main effect to a chosen variation scenario and select relevant classes
   diabetes$res <- res[, scenario] + -0.1
   a10bx <- diabetes %>% 
     filter(atc_5 == "A10BX")
+  
+  # Create version where one DC is missing
   no_a10bx <- diabetes
   no_a10bx$res[diabetes$atc_5 %in% c("A10BX")] <- NA
   
@@ -36,12 +59,13 @@ mdls <- map(1:3, function (i) {
     distinct(atc_5, drug)
   
   # Make linear combination
-  dc1 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, NA, 1), 
-                           mydrug = c(rep(NA, 23), 1)) 
+  dc1 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, NA, 1)) 
   
   dc2 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, NA, 1), 
-                           mydrug = c(rep(NA, 22), 1, NA)) 
-    
+                            mydrug = c(rep(NA, 23), 1)) 
+  dc3 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, NA, 1), 
+                           mydrug = c(rep(NA, 20), 1, rep(NA,3))) 
+  #   
   # Select iteration
   ## Add values for specific iteration
   my_data$y <-  no_a10bx$res[no_a10bx$iteration == iter]
@@ -50,7 +74,8 @@ mdls <- map(1:3, function (i) {
   mod1_nested2 <- inla(myform_nested2, 
                        data = my_data,
                        # Add linear combinations to estimate drug-class
-                       lincomb = c(a = dc1, b = dc2),
+                       #lincomb = dc1,
+                       lincomb = c(a = dc1, b = dc2, c= dc3),
                        # Likelihood distribution
                        family = "gaussian",
                        # Fix likelihood hyperpars as the data is fixed with known precision.
@@ -78,12 +103,32 @@ map(mdls, ~  plot(.x$marginals.lincomb[[1]], ylim = c(0,5), xlim = c(-2,2)))
 ## T distribution fits data well (as per BUGS)
 mdl_t <- map(mdls, function(mdl_each){
   # Dataframe of values and densities
-  res <- mdl_each$marginals.lincomb[[1]] %>% 
+  res <- mdl_each$marginals.lincomb %>% 
     as.data.frame() %>% 
     as_tibble()
-  
+ 
+}) # abbreviated this function here to view distributions of marginals
+
+mdl_t_tdy <- mdl_t[[1]] %>%
+  mutate(scenario = mean_scenario$scenario[1]) %>%
+  bind_rows( mdl_t[[2]] %>%
+               mutate(scenario = mean_scenario$scenario[2])) %>%
+  bind_rows( mdl_t[[3]] %>%
+               mutate(scenario = mean_scenario$scenario[3])) 
+
+ggplot(mdl_t_tdy) +
+  geom_line( aes(x=a.lc.x,y=a.lc.y), color="red") +
+  geom_line( aes(x=b.lc.x,y=b.lc.y), color = "orange") +
+  geom_line( aes(x=c.lc.x,y=c.lc.y), color= "blue") +
+  facet_wrap(~ scenario)
+
+## Modified to here
+
   # Extract results
   mdl_res_each <- mdl_each$summary.lincomb
+  list(mdl_t,mdl_res_each)
+  
+
   # Fit data, using mean and sd and df 3 for initial values
   a <- nls(formula = y ~ metRology::dt.scaled(x, df = 3, mean = m, sd = s),
          data = res, start = list(m = mdl_res_each$mean, s = mdl_res_each$sd/2),

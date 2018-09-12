@@ -63,7 +63,7 @@ mdls <- map(1:3, function (i) {
   
   dc2 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, NA, 1), 
                             mydrug = c(rep(NA, 23), 1)) 
-  dc3 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, 1, NA), 
+  dc3 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, NA, 1), 
                            mydrug = c(rep(NA, 20), 1, rep(NA,3))) 
   #   
   # Select iteration

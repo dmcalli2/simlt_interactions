@@ -176,6 +176,10 @@ ggplot() +
   ylab("Interaction effect estimate from model")+ 
   geom_hline(yintercept = -0.1, linetype = "dashed", color = "black")
 
+## Examine predictive distributions
+
+saveRDS(mean_scenario, "scratch_data/mean_scenario")
+
 ########## modified for both sims to here
 
 emphasise_trial <- emphasise_class %+% scenario_res2 +

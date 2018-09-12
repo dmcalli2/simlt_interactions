@@ -42,6 +42,8 @@ key_scens <- key_scens_max %>%
   bind_rows(key_scens_med) %>%
   bind_rows(key_scens_min)
 
+saveRDS(key_scens, "scratch_data/key_scens")
+
 scen_res_sum <- scen_res_sum %>%
   left_join(key_scens) %>%
   filter(como_prev=="std")

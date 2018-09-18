@@ -6,8 +6,8 @@ library(rjags)
 library(stringr)
 load.module("glm")
 
-my_priors <- readRDS(file = "scratch_data/Priors_for_examining_class.Rds")
-load(file = "data/for_inla.Rdata")
+my_priors <- readRDS(file = "scratch_data/Priors_for_examining_class_dc3.Rds")
+load(file = "data/sim1/std/for_inla.Rdata")
 
 a10bx <- diabetes%>% 
    arrange(iteration)
@@ -48,6 +48,7 @@ quantile(a10bx$y_crude, probs = c(0.05, 0.10, 0.25, 0.5, 0.75, 0.90, 0.95))
 my_priors <- my_priors$param
 my_priors <- map(my_priors, function(x) {
   x["m"] <- -0.1
+  x["d"] <- 3
   x})
 my_priors <- my_priors[-2]
 my_priors$vague <- c(m = 0, s = 1, d = 3)
@@ -127,8 +128,8 @@ res_plt <- res_plt %>%
   mutate(iteration = factor(iteration, levels = c("non","q05", "q50", "q95"),
                             labels = c("Prior only","Worse", "Neutral", "Better")),
          prior = factor(prior, levels = c("vague",
-                                          "atc5_0.25_trial_0.25_drug_0.15",
-                                          "atc5_0.05_trial_0.05_drug_0.15"
+                                          "atc5_0.25_trial_0.25_drug_0.25",
+                                          "atc5_0.05_trial_0.05_drug_0.05"
                                           ),
                         labels = c("Non-informative",
                                    "Weak","Strong" ))) %>% 
@@ -139,11 +140,25 @@ res_plt <- res_plt %>%
   group_by(iteration, prior) %>% 
   sample_n(10000)
 
+res_plt_sum <- res_plt %>% 
+  group_by(iteration, prior) %>%
+  summarise(mean = mean(values))
+
+hline_dat <- data.frame(iteration=levels(res_plt$iteration), hl=c(NA,-0.21,0.07,0.18)) 
+
+save(res_plt,hline_dat, file = "scratch_data/new_drug_new_class.Rdata")
+
+
 plot_impact <- ggplot(res_plt, aes(x = prior, y = values, fill = prior)) + 
   geom_violin(draw_quantiles = c(0.025, 0.5, 0.975), adjust = 1) +
   facet_wrap(~iteration) +
   scale_y_continuous("Treatment-covariate interaction") +
   scale_x_discrete("Prior used") +
+  geom_hline(data=hline_dat, aes(yintercept=hl), linetype = "dashed", color = "red")+
+    theme(axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(margin = margin(t = 0, r = 30, b = 0, l = 0)),
+        text =element_text(size = 14.5),
+        panel.background = element_rect(fill = "white", colour = "grey80")) +
   scale_fill_discrete(guide = FALSE) +
   coord_cartesian(ylim = c(-0.75, 0.75))
 plot_impact

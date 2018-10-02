@@ -95,14 +95,16 @@ myform_nested2 <- y ~ -1 + wdg +    ## wdg = wider (/widest) drug grouping (top 
 ## Make part of model matrix which is identical for all iterations
 my_drug_n <- as.numeric(as.factor(rheum_final$drug))
 study_id_n <- as.numeric(as.factor(as.character(rheum_final$nct_id)))
-atc5_n <- as.numeric(as.factor(as.character(rheum_final$atc_5)))
+moa_n <- as.numeric(as.factor(as.character(rheum_final$moa)))
+path_n <- as.numeric(as.factor(as.character(rheum_final$brd_drug_pth)))
 
 ## Create dataset which is consistent for all iterations
 my_data <- data.frame(y_prec = inter_prec, 
                       trial = study_id_n,
-                      myatc4 = 1,
-                      myatc5 = atc5_n,
-                      mydrug = my_drug_n)
+                      wdg = 1,            ## wdg = wider (/widest) drug grouping (top of hierarchy)
+                      mymoa = moa_n,
+                      mydrug = my_drug_n,
+                      mypath = path_n)
 
 
 ## Select only rheum variables need for each analysis

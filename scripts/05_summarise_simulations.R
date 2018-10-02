@@ -78,9 +78,93 @@ sim2_scenario_res <- sim2_scenario_res %>%
 
 scenario_res <- sim1_scenario_res %>%
   bind_rows(sim2_scenario_res) %>%
-  mutate(como_prev = ifelse(como_prev %in% "td", "std", como_prev))
+  mutate(como_prev = ifelse(como_prev %in% "td", "std", como_prev)) %>%
+  mutate(scenario = paste0("cp",scenario)  )
 
 saveRDS(scenario_res, "scratch_data/scenario_res.Rds")
+
+##### Review continous como_prev results
+
+como_prev_scen_res <- scenario_res %>%
+  filter(!como_prev %in% c("hi","lo","std")) %>%
+  mutate(como_prev = ifelse(!como_prev %in% c(".2",".1"), paste0(".",como_prev), como_prev ))
+
+# Find the iteration when got the mean value (or closest to it)
+mean_scenario <- como_prev_scen_res %>% 
+  group_by(scenario) %>% 
+  mutate(min_diff = abs(mean - mean(mean))) %>% 
+  arrange(scenario, min_diff) %>% 
+  slice(1) %>% 
+  ungroup()
+
+# Take the mean value and qintiles
+scenario_res_q <- como_prev_scen_res %>% 
+  select(scenario, mean, `0.025quant`, `0.975quant`) %>% 
+  group_by(scenario) %>% 
+  summarise_all(.funs = list(est = "mean",
+                             lci =function(x) quantile(x, 0.025),
+                             uci =function(x) quantile(x, 0.975))) %>% 
+  ungroup()
+
+scenario_res_q <- scenario_res_q %>% 
+  gather(key = "scenario_new", value = "value", -scenario) %>% 
+  separate(scenario_new, into = c("stat", "smry"), sep = "_")
+
+## Separate names
+scenario_names_lng <- ScenarioNames(scenario_res_q$scenario, sim=1)
+scenario_res_q <- scenario_res_q %>%
+  left_join(como_prev_scen_res %>%
+              distinct(sim, como_prev, path, atc_moa, drug, trial, .keep_all=TRUE) %>%
+              select(scenario,sim, como_prev, path, atc_moa, drug, trial))
+
+scenario_res_q$como_prev <- as.numeric(scenario_res_q$como_prev)
+
+
+## Spreadstatistic to wide
+scenario_res_q <- scenario_res_q %>% 
+  spread(key = smry, value = value)
+
+scenario_res2 <- scenario_res_q %>% 
+  mutate(result = factor(stat, levels = c("0.025quant", "mean", "0.975quant")),
+         my_alpha = if_else(result == "mean", 1, 0),
+         Trial = paste0("Trial ", trial),
+         Drug = paste0("Drug ", drug),
+         Atc_moa = paste0("Class ", atc_moa),
+         path = as.numeric(path),
+         atc_moa = as.numeric(atc_moa),
+         drug = as.numeric(drug),
+         trial = as.numeric(trial),
+         scenario = str_sub(scenario, 6,45)) %>%    
+        as_tibble()                     
+
+pd <- position_dodge(width = 0)
+
+scenario_res2$path <- as.character(scenario_res2$path)
+
+labels <- c(atc5_0.05_trial_0.05_drug_0.05 = "Sim1: Lo", atc5_0.25_trial_0.25_drug_0.25= "Sim1: Hi", 
+            path_0.05_moa_0.05_trial_0.05_drug_0.05= "Sim2: Lo", path_0.25_moa_0.25_trial_0.25_drug_0.25 = "Sim2: Hi")
+
+emphasise_class <- ggplot(scenario_res2,
+                          aes(x = como_prev, y = est, ymin = lci, ymax = uci, colour = result,
+                              alpha = my_alpha)) +
+  geom_errorbar(position = pd) +
+  geom_point(position = pd) +
+  facet_grid(.~  scenario, labeller=labeller(scenario = labels) ) +
+  scale_alpha(range = c(0.4, 1), guide = FALSE) + 
+  scale_colour_discrete("") +
+  theme(axis.text.x = element_text(angle=0), 
+        axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(margin = margin(t = 0, r = 30, b = , l = 0)),
+        text =element_text(size = 14.5),
+        panel.background = element_rect(fill = "white", colour = "grey80"),
+        panel.spacing = unit(2, "lines"),
+        panel.grid.major = element_line(colour="grey90")) +
+  scale_y_continuous("Effect estimate",breaks=seq(-1.5,1.5,0.5)) +
+  scale_x_continuous("Comorbidity prevalence",breaks=seq(0,0.2,0.05)) 
+
+emphasise_class
+
+#### Review std como_prev results
 
 # Find the iteration when got the mean value (or closest to it)
 mean_scenario <- scenario_res %>% 
@@ -128,8 +212,8 @@ scenario_res2 <- scenario_res_q %>%
          atc_moa = as.numeric(atc_moa),
          drug = as.numeric(drug),
          trial = as.numeric(trial)) %>% 
-  filter(como_prev %in% c("lo","hi")) %>%    ##### Comorbidity prevalence appears to make no difference
-  as_tibble()                     #####  so drop hi/lo here
+  filter(como_prev %in% c("lo","hi")) %>%    ##### Comorbidity prevalence appears to make little difference
+  as_tibble()                     #####  so drop hi/lo here and use continuous como_prev to investigate separately
 
 pd <- position_dodge(width = 1)
 

@@ -53,9 +53,9 @@ diabetes <- diabetes %>%
 
 set.seed(2345)
 
-n_its <- 5 # change based on how many iterations you want
+n_its <- 1 # change based on how many iterations you want
 
-scenarios <- c('atc5_0.05_trial_0.05_drug_0.05','atc5_0.05_trial_0.05_drug_0.15','atc5_0.05_trial_0.05_drug_0.25')
+scenarios <- c('atc5_0.05_trial_0.05_drug_0.05','atc5_0.25_trial_0.25_drug_0.25')
 
 scenarios_random_iterations <- mean_scenario_s1 %>% 
   mutate(row = row_number()) %>%
@@ -219,6 +219,9 @@ ggplot(mdl_t_tdy) +
   xlim(-1,1) +
   geom_vline(xintercept = -0.1, linetype = "dashed", color = "grey50") +theme_bw()
 
+## Only 1 iteration per scenario should be taken forward  
+
+#mdls <- list(mdls[[1]],mdls[[21]])
 
 ## Modified to here
 
@@ -228,47 +231,86 @@ mdl_t <- map(mdls, function(mdl_each){
   res <- mdl_each$marginals.lincomb %>% 
     as.data.frame() %>% 
     as_tibble() %>%
-    rename(x = lc.x, y = lc.y)
+    rename(wdg_x = a.lc.x, wdg_y = a.lc.y,
+           dc_x = b.lc.x, dc_y = b.lc.y,
+           ndnc_x = c.lc.x, ndnc_y = c.lc.y,
+           ndec_x = d.lc.x, ndec_y = d.lc.y)
   # Extract results
   mdl_res_each <- mdl_each$summary.lincomb
   list(mdl_t,mdl_res_each)
   
-
   # Fit data, using mean and sd and df 3 for initial values
-  a <- nls(formula = y ~ metRology::dt.scaled(x, df = 3, mean = m, sd = s),
-         data = res, start = list(m = mdl_res_each$mean, s = mdl_res_each$sd/2),
+
+  a <- nls(formula = wdg_y ~ metRology::dt.scaled(wdg_x, df = 3, mean = m, sd = s),
+         data = res, start = list(m = mdl_res_each$mean[[1]], s = mdl_res_each$sd[[1]]/2),
          algorithm = "port", lower = list(m = c(-5), s = c(0)))
   a <- summary(a)
   a <- a$coefficients[,"Estimate"]
   
+  dc_a <- nls(formula = dc_y ~ metRology::dt.scaled(dc_x, df = 3, mean = m, sd = s),
+           data = res, start = list(m = mdl_res_each$mean[[2]], s = mdl_res_each$sd[[2]]/2),
+           algorithm = "port", lower = list(m = c(-5), s = c(0)))
+  dc_a <- summary(dc_a)
+  dc_a <- dc_a$coefficients[,"Estimate"]
+  
+  ndnc_a <- nls(formula = ndnc_y ~ metRology::dt.scaled(ndnc_x, df = 3, mean = m, sd = s),
+           data = res, start = list(m = mdl_res_each$mean[[3]], s = mdl_res_each$sd[[3]]/2),
+           algorithm = "port", lower = list(m = c(-5), s = c(0)))
+  ndnc_a <- summary(ndnc_a)
+  ndnc_a <- ndnc_a$coefficients[,"Estimate"]
+  
+  ndec_a <- nls(formula = ndec_y ~ metRology::dt.scaled(ndec_x, df = 3, mean = m, sd = s),
+           data = res, start = list(m = mdl_res_each$mean[[4]], s = mdl_res_each$sd[[4]]/2),
+           algorithm = "port", lower = list(m = c(-5), s = c(0)))
+  ndec_a <- summary(ndec_a)
+  ndec_a <- ndec_a$coefficients[,"Estimate"]
+  
   # Add estimates to dataframe for comparison
-  res$y_new <- metRology::dt.scaled(res$x, df = 3, mean = a["m"], sd = a["s"])
+  res$y_new <- metRology::dt.scaled(res$wdg_x, df = 3, mean = a["m"], sd = a["s"])
+  res$dc_y_new <- metRology::dt.scaled(res$dc_x, df = 3, mean = dc_a["m"], sd = dc_a["s"])
+  res$ndnc_y_new <- metRology::dt.scaled(res$ndnc_x, df = 3, mean = ndnc_a["m"], sd = ndnc_a["s"])
+  res$ndec_y_new <- metRology::dt.scaled(res$ndec_x, df = 3, mean = ndec_a["m"], sd = ndec_a["s"])
+  
 
   # Plot and return parameters and data
-  plot(res$x, res$y, main = paste(c("df", "m", "s"), c(3, round(a,2)), sep = " = ", collapse = ", "))
-  lines(res$x, res$y_new, col = "red")
+  plot(res$wdg_x, res$wdg_y, main = paste(c("df", "m", "s"), c(3, round(a,2)), sep = " = ", collapse = ", "))
+  lines(res$wdg_x, res$y_new, col = "red")
+  
+  plot(res$dc_x, res$dc_y, main = paste(c("df", "m", "s"), c(3, round(dc_a,2)), sep = " = ", collapse = ", "))
+  lines(res$dc_x, res$dc_y_new, col = "red")
+  
+  plot(res$ndnc_x, res$ndnc_y, main = paste(c("df", "m", "s"), c(3, round(ndnc_a,2)), sep = " = ", collapse = ", "))
+  lines(res$ndnc_x, res$ndnc_y_new, col = "red")
+  
+  plot(res$ndec_x, res$ndec_y, main = paste(c("df", "m", "s"), c(3, round(ndec_a,2)), sep = " = ", collapse = ", "))
+  lines(res$ndec_x, res$ndec_y_new, col = "red")
   
   # Make new dataset with more points
   res_new <- tibble(x = seq(-2, 2, 0.005))
   res_new <- res_new %>% 
-    mutate(y = metRology::dt.scaled(x, df = 3, mean = a["m"], sd = a["s"]))
+    mutate(wdg_y = metRology::dt.scaled(x, df = 3, mean = a["m"], sd = a["s"])) %>%
+    mutate(dc_y = metRology::dt.scaled(x, df = 3, mean = dc_a["m"], sd = dc_a["s"])) %>%
+    mutate(ndnc_y = metRology::dt.scaled(x, df = 3, mean = ndnc_a["m"], sd = ndnc_a["s"])) %>%
+    mutate(ndec_y = metRology::dt.scaled(x, df = 3, mean = ndec_a["m"], sd = ndec_a["s"])) 
   # Parameters and data
-  list(param = a, res = res_new)
+  list(param = c(a,dc_a,ndnc_a,ndec_a), res = res_new)
 })
 
-names(mdl_t) <- mean_scenario_s1$scenario
+names(mdl_t) <-scenarios
 mdl_t <- transpose(mdl_t)
 mdl_t_g <- bind_rows(mdl_t$res, .id = "scenario") %>% 
-  mutate(variation = factor(scenario, levels = mean_scenario_s1$scenario,
-                         labels = c("Minimum", "Median", "Maximum")))
+  mutate(variation = factor(scenario, levels = scenarios,
+                         labels = c("Minimum",  "Maximum"))) %>%
+  gather(key = y_type, value = y, -scenario,-x,-variation)
 
-plot1 <- ggplot(mdl_t_g, aes(x = x, y = y, colour = variation)) +
+plot1 <- ggplot(mdl_t_g, aes( x = x, y = y,colour = variation)) +
   geom_line() +
+  facet_grid(.~ y_type) +
   scale_x_continuous("Treatment-covariate interaction", limits = c(-1, 1)) +
   scale_y_continuous("Density")
 plot1
 
-saveRDS(mdl_t, file = "scratch_data/Priors_for_examining_class_dc4.Rds")
+saveRDS(mdl_t, file = "scratch_data/Priors_for_examining_class.Rds")
 
 ## Random 
 

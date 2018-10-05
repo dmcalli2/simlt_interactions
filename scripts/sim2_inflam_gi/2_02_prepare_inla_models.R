@@ -48,8 +48,8 @@ rownames(res) <- paste(rheum$brd_drug_pth, rheum$moa, rheum$drug, rheum$nct_id, 
                        sep = "_")
 
 #Como_prevs
-como_prev <- c("lo")
-#como_prev <- c("std")
+#como_prev <- c("lo")
+como_prev <- c("std")
 #como_prev <- c("hi")
 
 comorbidity_prev <- ifelse(como_prev == "hi", 0.4, NA) #depression/anxiety

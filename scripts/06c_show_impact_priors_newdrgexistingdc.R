@@ -22,10 +22,6 @@ mean_scenario <- mean_scenarios %>%
   mutate(scenario = str_sub(scenario, 4, -1L))
 # Identify mean for each scenarios
 
-#02b_run_inla_model
-
-# INLA:::inla.dynload.workaround() 
-# load(file = "data/for_inla.Rdata")
 
 #Separate for each sim from here
 
@@ -55,8 +51,6 @@ n_its <- 1 # change based on how many iterations you want
 
 scenarios <- c('atc5_0.05_trial_0.05_drug_0.05','atc5_0.15_trial_0.15_drug_0.15','atc5_0.25_trial_0.25_drug_0.25') 
 
-mean_scenario_s1$mean <- as.numeric(mean_scenario_s1$mean)
-
 slct_itrs <- mean_scenario_s1 %>%
   filter(scenario %in% scenarios) %>%
   filter(between(mean,-0.101, -0.099))
@@ -76,7 +70,7 @@ scenarios_random_iterations <- mean_scenario_s1 %>%
   pull(row)
 ## Loop through mean for 3 scenarios, single iteration for each
 mdls <- map(scenarios_random_iterations, function (i) {
-#mdls <- map(c(sample(1:1000,n_its),sample(16001:17000,n_its),sample(26001:27000,n_its)), function (i) {
+#mdls <- map(scenarios_selected_iterations, function (i) {
   scenario <- mean_scenario_s1$scenario[i]
   iter <- mean_scenario_s1$iter[i]
  

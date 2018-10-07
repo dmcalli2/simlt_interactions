@@ -69,7 +69,7 @@ sd <- 1       ### Interpretation of this should come from real studies and depen
       
 # calculate SE for comorbidity adn non-comorbidity group (same for placebo and treatment)
 
-rheum_final <- rheum_final[with(rheum_final, order(atc_5, drug, nct_id)),]
+rheum_final <- rheum_final[with(rheum_final, order(brd_drug_pth, moa, drug,  nct_id)),]
 
 # Calculate standard error for groups with and without comorbidity
 ncomo_se = sd/ ((1-comorbidity_prev) * rheum_final$n_per_grp)^0.5

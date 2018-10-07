@@ -326,6 +326,9 @@ mdl_t <- transpose(mdl_t)
 mdl_t$res$Lo_Full_noDCinfo$dc_y <- NA
 mdl_t$res$Me_Full_noDCinfo$dc_y <- NA
 mdl_t$res$Hi_Full_noDCinfo$dc_y <- NA
+mdl_t$param$Lo_Full_noDCinfo[3:4] <- NA
+mdl_t$param$Me_Full_noDCinfo[3:4] <- NA
+mdl_t$param$Hi_Full_noDCinfo[3:4] <- NA
 mdl_t_g <- bind_rows(mdl_t$res, .id = "scenario_model") %>% 
   mutate(variation = factor(str_sub(scenario_model,1,2 ) , levels = c("Lo","Me","Hi"),
                          labels = c("Minimum", "Median", "Maximum")),

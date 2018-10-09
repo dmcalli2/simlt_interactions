@@ -18,7 +18,7 @@ diabetes_final <- diabetes_final[with(diabetes_final, order(atc_5, drug, nct_id)
 
 diabetes_orig <- diabetes%>% 
    arrange(iteration)
-diabetes_orig <- cbind(my_data, diabetes)
+diabetes_orig <- cbind(my_data, diabetes_orig)
 
 #append 3 new trials of a new drug in a new class
 
@@ -231,15 +231,15 @@ plot_impact <- ggplot(res_plt, aes(x = prior_type_vrn, y = values, fill = prior_
   facet_grid(.~ iteration  , scales = "free_y") +
   scale_y_continuous("Treatment-covariate interaction") +
   scale_x_discrete("Prior used",expand = c(0,0)) +
-  geom_hline(data=hline_dat, aes(yintercept=hl, linetype = "At WDG level"), color = "red")+
-  geom_hline(data=hline_dat2, aes(yintercept=hl, linetype = "In new drug class"), color = "grey80")+
+  geom_hline(data=hline_dat2, aes(yintercept=hl, linetype = "At WDG level"), color = "grey80")+
+  geom_hline(data=hline_dat, aes(yintercept=hl, linetype = "In new drug class"), color = "red")+
       theme(axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
         axis.title.y = element_text(margin = margin(t = 0, r = 30, b = 0, l = 0)),
         text =element_text(size = 14.5),
         panel.background = element_rect(fill = "white", colour = "grey80")) +
   scale_fill_discrete() +
   scale_linetype_manual(name = "'True' effect \nobserved in data", values = c(2, 2), 
-                        guide = guide_legend(override.aes = list(color = c("red", "grey80")))) + 
+                        guide = guide_legend(override.aes = list(color = c( "grey80","red")))) + 
   coord_cartesian(ylim = c(-0.5, 0.5))
 plot_impact
 

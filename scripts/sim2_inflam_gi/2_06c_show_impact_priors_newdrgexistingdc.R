@@ -397,5 +397,7 @@ plot1 <- ggplot(mdl_t_g, aes( x = x, y = y,colour = variation)) +
   scale_y_continuous("Density")
 plot1
 
+
+save(scenarios_random_iterations,mean_scenario_s2, file = "scratch_data/Priors_for_newdrug_extclass_sim2_scns_itrs.Rdata")
 saveRDS(mdl_t, file = "scratch_data/Priors_for_newdrug_extclass_sim2.Rds")
 

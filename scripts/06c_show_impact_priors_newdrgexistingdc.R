@@ -33,10 +33,9 @@ mean_scenario_s1 <- scenario_res %>%
 
 load(file = "data/sim1/std/for_inla.Rdata")
 
-## NEW CLASS (dc1) NEW DRUG IN NEW CLASS (dc2) NEW DRUG IN EXISTING CLASS (dc3) 
 
 diabetes_abc <- diabetes %>% 
-  distinct(atc_5, drug) %>%
+ # distinct(atc_5, drug) %>%
   mutate(newdrug = paste0(row_number(),drug))
 
 diabetes <- diabetes %>%
@@ -118,9 +117,9 @@ mdls <- map(scenarios_random_iterations, function (i) {
   
   dc1 <- inla.make.lincomb(myatc4 = 1) # WDG, should be equivalent to fixed effect
   
-  dc2 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, 1, NA, NA, NA, NA, NA)) # DC level, new drug in a new class
+  dc2 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, 1, NA, NA, NA, NA, NA)) # DC level, new drug in an ext class
   
-  dc3 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, 1, NA, NA, NA, NA, NA),  # drug level,  new drug new class  
+  dc3 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, 1, NA, NA, NA, NA, NA),  # drug level,  new drug ext class  
                             mydrug = c(rep(NA, 24), 1)) 
   
 

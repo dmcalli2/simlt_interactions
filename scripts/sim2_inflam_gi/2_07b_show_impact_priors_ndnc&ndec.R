@@ -260,12 +260,13 @@ hline_dat <- hline_dat %>%
 
 
 hline_dat2 <- hline_dat %>%
-  mutate( hl=c(rep(-0.1,12)))
+  mutate( hl=c(-0.1,rep(NA,3),-0.1,rep(NA,3),-0.1,rep(NA,3) ) )
 
 hline_dat3 <- hline_dat %>%
-  mutate( hl=c(rep(my_priors_ndec$param$Lo_Full[5],4),
-               rep(my_priors_ndec$param$Me_Full[5], 4),
-               rep(my_priors_ndec$param$Hi_Full[5], 4)))
+  mutate( hl=c(my_priors_ndec$param$Lo_Full[5],rep(NA,3),
+               my_priors_ndec$param$Me_Full[5],rep(NA,3),
+               my_priors_ndec$param$Hi_Full[5],rep(NA,3) ))
+
 
 save(res_plt,hline_dat, file = "scratch_data/new_drug_ext_class_sim2.Rdata")
 
@@ -274,10 +275,12 @@ res_plt <- res_plt %>%
           !( scenario =="Medium variation" & prior_type_vrn %in% c("Strong","Weak") ),
           !( scenario =="High variation" & prior_type_vrn %in% c("Medium","Strong") ))
 
+res_plt$scenario <- factor(res_plt$scenario,levels(res_plt$scenario)[c(3,2,1)]) 
+
 dodge <- position_dodge(width=0.8)
 plot_impact <- ggplot(res_plt, aes(x = prior_type_vrn, y = values, fill = prior_type_level)) + 
   geom_violin(draw_quantiles = c(0.025, 0.5, 0.975), adjust = 0.5, position = dodge,width = 2.7, trim = TRUE) +
-  facet_grid(scenario~ iteration  , scales = "free") +
+  facet_grid(scenario~ iteration  ) +
   scale_y_continuous("Treatment-covariate interaction") +
   scale_x_discrete("Prior used",expand = c(0.2,0.2)) +
   geom_hline(data=hline_dat2, aes(yintercept=hl, linetype = "In original sample, at WDG level"), color = "red")+
@@ -288,7 +291,7 @@ plot_impact <- ggplot(res_plt, aes(x = prior_type_vrn, y = values, fill = prior_
         text =element_text(size = 14.5),
         panel.background = element_rect(fill = "white", colour = "grey80")) +
   scale_fill_discrete() +
-  scale_linetype_manual(name = "'True' effect observed", values = c(2, 2, 2), 
+  scale_linetype_manual(name = "'True' effect observed", values = c(1, 2, 3), 
                         guide = guide_legend(override.aes = list(color = c( "grey80","forestgreen","red")))) +
   coord_cartesian(ylim = c(-0.75, 0.75))
 plot_impact

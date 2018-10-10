@@ -94,6 +94,15 @@ my_data <- data.frame(y_prec = inter_prec,
 diabetes <- diabetes [ , c("atc_5", "drug", "nct_id", "iteration")]
 save(my_data, myform_nested2, diabetes, res, file = paste0("data/sim1/",como_prev,"/for_inla.Rdata"))
 
+diabetes$res <- res[, 'atc5_0.05_trial_0.05_drug_0.05'] + -0.1
+my_data$y <-  diabetes$res[diabetes$iteration == 1]
+
+my_data_for_table <- cbind(diabetes_final, my_data) %>%
+  select(nct_id, atc_5, drug, n_per_grp, y_prec, y) %>%
+  mutate(sd = sqrt(y_prec^-1) ) 
+
+write.csv(my_data_for_table, file= "./tables/sim1my_data.csv")  
+
 ### Create scripts to run on HPCC
 
 count <- 0

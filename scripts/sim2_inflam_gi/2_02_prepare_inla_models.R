@@ -10,6 +10,8 @@ load("Data/rheum_final.Rdata")
 rheum <- readRDS("scratch_data/sim2_interactn_opts.Rds")
 rheum <- as.data.frame(rheum)
 
+
+
 # extract vectors describing trial, drug and atc5 level interactions
 
 paths  <- names(rheum)[substr(names(rheum), 1, 5) == "path_"]
@@ -108,6 +110,21 @@ my_data <- data.frame(y_prec = inter_prec,
 ## Select only rheum variables need for each analysis
 rheum <- rheum [ , c("brd_drug_pth", "moa", "drug", "nct_id", "iteration")]
 save(my_data, myform_nested2, rheum, res, file = paste0("data/sim2/",como_prev,"/for_inla.Rdata"))
+
+rheum$res <- res[, 'path_0.05_moa_0.05_trial_0.05_drug_0.05'] + -0.1
+my_data$y <-  rheum$res[rheum$iteration == 1]
+
+my_data_for_table <- cbind(rheum_final, my_data) %>%
+  select(nct_id, moa, brd_drug_pth, drug, n_per_grp, y_prec, y) %>%
+  mutate(sd = sqrt(y_prec^-1) ) 
+
+write.csv(my_data_for_table, file= "./tables/sim2my_data.csv")  
+
+rheum_final_classifcations <- rheum_final %>%
+  select(drug, brd_drug_pth, atc_5, moa) %>%
+  distinct()
+write.csv(rheum_final_classifcations, file= "./tables/rheum_classifications.csv")  
+
 
 ### Create scripts to run on HPCC
 count <- 0

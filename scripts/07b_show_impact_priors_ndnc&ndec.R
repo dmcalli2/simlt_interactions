@@ -195,7 +195,7 @@ res_plt <- res_plt %>%
   mutate(iteration = factor(iteration, levels = c("non","q05", "q50", "q95"),
                             labels = c("Prior only","Treatment worse \nwith comorbidity", "Interaction neutral", "Treatment better \nwith comorbidity")),
          prior_type_level = factor(prior_type_level, levels = c("vagFull", "WDGFull_noDCinfo","WDGFull", "nDCFull", "nDgFull", "nDgFull_noDCinfo"),
-                        labels = c("Non-informative","WDG level: \nstandard model (no DC)","WDG level: \nDC model","DC level: \nfull model","Drug level: \nfull model","drop" )),
+                        labels = c("Non-informative","WDG level: standard model (no DC)","WDG level: full model","DC level: full model","Drug level: full model","drop" )),
          prior_type_vrn = factor(prior_type_vrn, levels = c("e_", "Lo", "Me", "Hi"),
                                    labels = c("Non-inf","Strong","Medium","Weak" ))) %>% 
   select(-ind) %>% 
@@ -216,66 +216,75 @@ effects <- map(df_choose, function(x){
    colMeans(x['y'])
   })
 
-hline_dat <- data.frame(iteration=levels(res_plt$iteration), hl=c(effects$non,
+hline_dat <- data.frame(iteration=levels(res_plt$iteration), new=c(effects$non,
                                                                   effects$q05,
                                                                   effects$q50,
                                                                   effects$q95)) 
 
-hline_dat2 <- data.frame(iteration=levels(res_plt$iteration), hl=c(rep(-0.1,4))) 
+hline_dat2 <- hline_dat %>%
+  mutate( old_wdg=c(rep(-0.1,4) ))
 
-save(res_plt,hline_dat, file = "scratch_data/new_drug_new_class.Rdata")
+hline_dat3 <- hline_dat2 %>%
+  gather(key = line_type, value = hl, -iteration)
 
-dodge <- position_dodge(width=1)
-plot_impact <- ggplot(res_plt, aes(x = prior_type_vrn, y = values, fill = prior_type_level)) + 
-  geom_violin(draw_quantiles = c(0.025, 0.5, 0.975), adjust = 10, position = dodge,width = 1.7) +
-  facet_grid(.~ iteration  , scales = "free_y") +
-  scale_y_continuous("Treatment-covariate interaction \nin new drug class") +
-  scale_x_discrete("Prior used",expand = c(0,0)) +
-  geom_hline(data=hline_dat2, aes(yintercept=hl, linetype = "At WDG level"), color = "black")+
-  geom_hline(data=hline_dat, aes(yintercept=hl, linetype = "In new drug class"), color = "red")+
-      theme(axis.text.x = element_text(angle=15, vjust = .05),
-        axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
-        axis.title.y = element_text(margin = margin(t = 0, r = 30, b = 0, l = 0)),
-        text =element_text(size = 14.5),
-        panel.background = element_rect(fill = "white", colour = "grey80"),
-        legend.position="bottom",
-        legend.direction="vertical")+
-  scale_fill_discrete("Prior type") +
-  scale_linetype_manual(name = "'True' effect \nobserved in data", values = c(2, 2), 
-                        guide = guide_legend(override.aes = list(color = c( "black","red")))) + 
-  coord_cartesian(ylim = c(-0.3, 0.3))
-plot_impact
 
-tiff("figures/Impact_of_priors_ndnc.tiff", res = 600, compression = "lzw", unit = "in",
-     height = 7, width =9)
-plot_impact
-dev.off()
+save(res_plt,hline_dat3, file = "scratch_data/new_drug_new_class.Rdata")
+
+load( file = "scratch_data/new_drug_new_class.Rdata")
+# 
+# dodge <- position_dodge(width=1)
+# plot_impact <- ggplot(res_plt, aes(x = prior_type_vrn, y = values, fill = prior_type_level)) + 
+#   geom_violin(draw_quantiles = c(0.025, 0.5, 0.975), adjust = 10, position = dodge,width = 1.7) +
+#   facet_grid(.~ iteration  , scales = "free_y", switch = "y") +
+#   scale_y_continuous("Treatment-covariate interaction \nin new drug class", position = "right") +
+#   scale_x_discrete("Prior used",expand = c(0,0)) +
+#   geom_hline(data=hline_dat2, aes(yintercept=hl, linetype = "At WDG level"), color = "black")+
+#   geom_hline(data=hline_dat, aes(yintercept=hl, linetype = "In new drug class"), color = "red")+
+#       theme(axis.text.x = element_text(angle=15, vjust = .05),
+#         axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
+#         axis.title.y = element_text(margin = margin(t = 0, r = 30, b = 0, l = 0)),
+#         text =element_text(size = 14.5),
+#         panel.background = element_rect(fill = "white", colour = "grey80"),
+#         legend.position="bottom")+
+#   scale_fill_discrete("Prior type") +
+#   scale_linetype_manual(name = "'True' effect \nobserved in data", values = c(2, 2), 
+#                         guide = guide_legend(override.aes = list(color = c( "black","red")))) + 
+#   coord_cartesian(ylim = c(-0.3, 0.3))
+# plot_impact
+# 
+# tiff("figures/Impact_of_priors_ndnc.tiff", res = 600, compression = "lzw", unit = "in",
+#      height = 7, width =9)
+# plot_impact
+# dev.off()
 
 require(ggridges)
 require(viridis)
+res_plt$prior_type_level <- factor(res_plt$prior_type_level,levels(res_plt$prior_type_level)[seq(6,1,-1)]) 
 
 
-plot_impact_alt <- ggplot(res_plt, aes(x = values, y = prior_type_vrn, fill = ..x..), xlim = c(-0.5,0.5)) + 
+plot_impact_alt <- ggplot(res_plt, aes(x = values, y = prior_type_level, fill = ..x..), xlim = c(-0.5,0.5)) + 
   geom_density_ridges_gradient(scale = 2, panel_scaling = TRUE, alpha = 0.7, quantile_lines = TRUE, quantiles=2) + 
   # stat_density_ridges(quantile_lines = TRUE, quantiles = 2) +
-  scale_fill_gradientn(colours = viridis_pal()(9), limits=c(-0.4,0.4), guide= FALSE ) +
-  facet_grid(prior_type_level~ iteration  , scales = "free_y") +
+  scale_fill_gradientn(colours = viridis_pal()(9), limits=c(-0.45,0.45), guide= FALSE ) +
+  facet_grid(prior_type_vrn~ iteration  , scales = "free_y", switch = "y") +
   coord_cartesian(xlim = c(-0.4, 0.4)) +
-  geom_vline(data=hline_dat2, aes(xintercept=hl, linetype = "At WDG level"), color = "black")+
-  geom_vline(data=hline_dat, aes(xintercept=hl, linetype = "In new drug class"), color = "red")+
+  geom_vline(data=hline_dat3, aes(xintercept=hl, colour=line_type),linetype = 2,  size=0.8)+
   scale_x_continuous("Treatment-covariate interaction \nin new drug class") +
-  theme(axis.text.x = element_text(angle=0, vjust = 0),
+  theme(axis.text.x = element_text(angle=0, vjust = 0, size = 10),
         axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
-        axis.title.y = element_text(margin = margin(t = 0, r = 30, b = 0, l = 0)),
+        axis.title.y = element_text(margin = margin(t = 0, r = 30, b = 0, l = 10)),
         text =element_text(size = 14.5),
-        panel.background = element_rect(fill = "white", colour = "grey80"))+
-#  scale_fill_discrete("Prior type") +
-  scale_linetype_manual(name = "'True' effect \nobserved in data", values = c(2, 2), 
-                        guide = guide_legend(override.aes = list(color = c( "black","red")))) 
-  
+        panel.background = element_rect(fill = "white", colour = "grey80"),
+        strip.text = element_text(size=10),
+        legend.position = "bottom")+
+  scale_y_discrete("Prior type", position = "right") +
+  guides(colour = guide_legend(title.position = "top")) +
+  scale_colour_manual(name = "'True' effect observed", values = c(old_wdg = "grey60",  new = "red"), 
+                      labels = c(old_wdg = "In original sample, at WDG level",  new = "In new trial data, at DC level")) 
+
 plot_impact_alt
 
 tiff("figures/Impact_of_priors_ndnc_alt.tiff", res = 600, compression = "lzw", unit = "in",
-     height = 7, width =9)
+     height = 10, width =8)
 plot_impact_alt
 dev.off()

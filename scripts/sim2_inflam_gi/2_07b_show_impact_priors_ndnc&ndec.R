@@ -205,7 +205,7 @@ res_plt2 <- res_plt %>%
          prior_type_level = paste0(str_sub(ind, 8,10),str_sub(ind, 15)),
          prior_type_vrn = str_sub(ind, 12,13)) %>% 
   mutate(iteration = factor(iteration, levels = c("non","q05", "q50", "q95"),
-                            labels = c("Prior only","Worse", "Neutral", "Better")),
+                            labels = c("Prior only","Treatment worse \nwith comorbidity", "Interaction neutral", "Treatment better \nwith comorbidity")),
          scenario = factor(scenario, levels = c("lo", "me", "hi"),
                             labels = c("Low variation", "Medium variation", "High variation")),
          prior_type_level = factor(prior_type_level, levels = 
@@ -213,10 +213,10 @@ res_plt2 <- res_plt %>%
                                        "WDGFull_noDC_Path_info","PthFull_noDC_Path_info", "nDCFull_noDC_Path_info", "nDgFull_noDC_Path_info",
                                        "WDGNewDrgDC_only","PthNewDrgDC_only", "nDCNewDrgDC_only", "nDgNewDrgDC_only",
                                        "WDGFull","PthFull", "nDCFull", "nDgFull"),
-                        labels = c("Non-inf", 
-                                   "WDG level - standard model","drop1", "drop2", "drop3",
-                                   "drop4","drop5", "DC level - single DC only model", "Drug level - single DC only model",
-                                   "WDG level - DC model","Path level - DC model", "DC level - DC model", "Drug level - DC model")),
+                        labels = c("Non-informative", 
+                                   "WDG level: standard model","drop1", "drop2", "drop3",
+                                   "drop4","drop5", "DC level: single DC only model", "Drug level: single DC only model",
+                                   "WDG level: full model","Path level: full model", "DC level: full model", "Drug level: full model")),
          prior_type_vrn = factor(prior_type_vrn, levels = c("e_", "Lo", "Me", "Hi"),
                                    labels = c("Non-inf","Strong","Medium","Weak" ))) %>% 
   select(-ind) %>% 
@@ -245,7 +245,7 @@ hline_dat$scenario <- factor(hline_dat$scenario,levels(res_plt$scenario))
 hline_dat <- hline_dat %>%
   arrange(scenario, iteration)
 hline_dat <- hline_dat %>%
-  mutate( hl = as.vector(c(effects$non.lo,
+  mutate( new = as.vector(c(effects$non.lo,
                            effects$q05.lo,
                            effects$q50.lo,
                            effects$q95.lo,
@@ -260,43 +260,85 @@ hline_dat <- hline_dat %>%
 
 
 hline_dat2 <- hline_dat %>%
-  mutate( hl=c(-0.1,rep(NA,3),-0.1,rep(NA,3),-0.1,rep(NA,3) ) )
+  mutate( old_wdg=c(-0.1,rep(NA,3),-0.1,rep(NA,3),-0.1,rep(NA,3) ) )
 
-hline_dat3 <- hline_dat %>%
-  mutate( hl=c(my_priors_ndec$param$Lo_Full[5],rep(NA,3),
+hline_dat3 <- hline_dat2 %>%
+  mutate(old_dc=c(my_priors_ndec$param$Lo_Full[5],rep(NA,3),
                my_priors_ndec$param$Me_Full[5],rep(NA,3),
-               my_priors_ndec$param$Hi_Full[5],rep(NA,3) ))
+               my_priors_ndec$param$Hi_Full[5],rep(NA,3)))
 
 
 save(res_plt,hline_dat, file = "scratch_data/new_drug_ext_class_sim2.Rdata")
+
+load(file = "scratch_data/new_drug_ext_class_sim2.Rdata")
 
 res_plt <- res_plt %>%
   filter( !( scenario =="Low variation" & prior_type_vrn %in% c("Medium","Weak") ),
           !( scenario =="Medium variation" & prior_type_vrn %in% c("Strong","Weak") ),
           !( scenario =="High variation" & prior_type_vrn %in% c("Medium","Strong") ))
 
-res_plt$scenario <- factor(res_plt$scenario,levels(res_plt$scenario)[c(3,2,1)]) 
+# 
+# dodge <- position_dodge(width=0.8)
+# plot_impact <- ggplot(res_plt, aes(x = prior_type_vrn, y = values, fill = prior_type_level)) + 
+#   geom_violin(draw_quantiles = c(0.025, 0.5, 0.975), adjust = 0.5, position = dodge,width = 2.7, trim = TRUE) +
+#   facet_grid(scenario~ iteration  ) +
+#   scale_y_continuous("Treatment-covariate interaction") +
+#   scale_x_discrete("Prior used",expand = c(0.2,0.2)) +
+#   geom_hline(data=hline_dat2, aes(yintercept=hl, linetype = "In original sample, at WDG level"), color = "red")+
+#   geom_hline(data=hline_dat3, aes(yintercept=hl, linetype = "In original sample, at DC level"), color = "forestgreen")+
+#   geom_hline(data=hline_dat, aes(yintercept=hl, linetype = "In new data, at DC level"), color = "grey80")+
+#         theme(axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
+#         axis.title.y = element_text(margin = margin(t = 0, r = 30, b = 0, l = 0)),
+#         text =element_text(size = 14.5),
+#         panel.background = element_rect(fill = "white", colour = "grey80")) +
+#   scale_fill_discrete() +
+#   scale_linetype_manual(name = "'True' effect observed", values = c(1, 2, 3), 
+#                         guide = guide_legend(override.aes = list(color = c( "grey80","forestgreen","red")))) +
+#   coord_cartesian(ylim = c(-0.75, 0.75))
+# plot_impact
+# 
+# tiff("figures/Impact_of_priors_sim2_ndec.tiff", res = 600, compression = "lzw", unit = "in",
+#      height = 8, width = 8)
+# plot_impact
+# dev.off()
 
-dodge <- position_dodge(width=0.8)
-plot_impact <- ggplot(res_plt, aes(x = prior_type_vrn, y = values, fill = prior_type_level)) + 
-  geom_violin(draw_quantiles = c(0.025, 0.5, 0.975), adjust = 0.5, position = dodge,width = 2.7, trim = TRUE) +
-  facet_grid(scenario~ iteration  ) +
-  scale_y_continuous("Treatment-covariate interaction") +
-  scale_x_discrete("Prior used",expand = c(0.2,0.2)) +
-  geom_hline(data=hline_dat2, aes(yintercept=hl, linetype = "In original sample, at WDG level"), color = "red")+
-  geom_hline(data=hline_dat3, aes(yintercept=hl, linetype = "In original sample, at DC level"), color = "forestgreen")+
-  geom_hline(data=hline_dat, aes(yintercept=hl, linetype = "In new data, at DC level"), color = "grey80")+
-        theme(axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
-        axis.title.y = element_text(margin = margin(t = 0, r = 30, b = 0, l = 0)),
+require(ggridges)
+require(viridis)
+
+
+#res_plt$scenario <- factor(res_plt$scenario,levels(res_plt$scenario)[c(3,2,1)]) 
+res_plt$prior_type_level <- factor(res_plt$prior_type_level,levels(res_plt$prior_type_level)[seq(13,1,-1)]) 
+
+
+hline_dat4 <- hline_dat3 %>%
+  gather(key = line_type, value = hl, -iteration,-scenario)
+
+
+plot_impact_alt <- ggplot(res_plt, aes(x = values, y = prior_type_level,  fill = ..x..), xlim = c(-0.5,0.7)) + 
+  geom_density_ridges_gradient(scale = 2.5, panel_scaling = TRUE, alpha = 0.7, quantile_lines = TRUE, quantiles=2, colour="grey30") + 
+  # stat_density_ridges(quantile_lines = TRUE, quantiles = 2) +
+  scale_fill_gradientn(colours = viridis_pal()(9), limits=c(-0.7,0.775), guide= FALSE ) +
+  facet_grid(scenario ~ iteration   , scales = "free", 
+             switch = "y") +
+  coord_cartesian(xlim = c(-0.6, 0.7)) +
+  geom_vline(data=hline_dat4, aes(xintercept=hl, colour=line_type),linetype = 2,  size=0.8)+
+  scale_x_continuous("Treatment-covariate interaction \nin new drug class", breaks = c(seq(-0.5,0.7, 0.1)),
+                     labels = c("","-0.4","","-0.2","","0","","0.2","","0.4","","0.6","")) +
+  theme(axis.text.x = element_text(angle=0, vjust = 0, size = 11),
+        axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(margin = margin(t = 0, r = 30, b = 0, l = 10)),
         text =element_text(size = 14.5),
-        panel.background = element_rect(fill = "white", colour = "grey80")) +
-  scale_fill_discrete() +
-  scale_linetype_manual(name = "'True' effect observed", values = c(1, 2, 3), 
-                        guide = guide_legend(override.aes = list(color = c( "grey80","forestgreen","red")))) +
-  coord_cartesian(ylim = c(-0.75, 0.75))
-plot_impact
+        panel.background = element_rect(fill = "white", colour = "grey80"),
+        strip.text = element_text(size=10),
+        legend.position= "bottom")+
+    scale_y_discrete("Prior type", position = "right") +
+  guides(colour = guide_legend(title.position = "top")) +
+  scale_colour_manual(name = "'True' effect observed", values = c(old_wdg = "grey60", old_dc = "blue", new = "red"), 
+                      labels = c(old_wdg = "In original sample, at WDG level", old_dc = "In original sample, at DC level", new = "In new trial data, at DC level")) 
 
-tiff("figures/Impact_of_priors5.tiff", res = 600, compression = "lzw", unit = "in",
-     height = 8, width = 8)
-plot_impact
+plot_impact_alt
+
+tiff("figures/Impact_of_priors_sim2_ndec_alt.tiff", res = 600, compression = "lzw", unit = "in",
+     height = 7, width =10)
+plot_impact_alt
 dev.off()

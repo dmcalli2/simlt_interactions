@@ -11,6 +11,7 @@ scenario_res <- readRDS("scratch_data/scenario_res.Rds")
 
 scen_res_sum <- scenario_res %>%
   group_by(scenario) %>%
+  filter(como_prev %in% c("hi","low","std")) %>%
   summarise(total_vrn = mean(sd)) %>%
   inner_join(scenario_res %>% 
                select(scenario,sim,como_prev)%>% 

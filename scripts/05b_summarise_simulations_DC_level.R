@@ -3,6 +3,7 @@ library(metRology)
 library(tidyverse)
 library(INLA)
 library(stringr)
+library(magrittr)
 
 mean_scenarios <- readRDS("scratch_data/mean_scenario")
 key_scens <- readRDS("scratch_data/key_scens")
@@ -44,11 +45,11 @@ diabetes <- diabetes %>%
   rename(drug = newdrug)
 
 
-set.seed(267)
+set.seed(523)
 
 n_its <- 1 # change based on how many iterations you want
 
-scenarios <- c('atc5_0.05_trial_0.05_drug_0.05','atc5_0.15_trial_0.15_drug_0.15','atc5_0.25_trial_0.25_drug_0.25') 
+scenarios <- c('atc5_0.05_trial_0.05_drug_0.05','atc5_0.15_trial_0.05_drug_0.05','atc5_0.25_trial_0.05_drug_0.05') 
 
 slct_itrs <- mean_scenario_s1 %>%
   filter(scenario %in% scenarios) %>%
@@ -77,27 +78,29 @@ mdls <- map(scenarios_random_iterations, function (i) {
   diabetes$res <- res[, scenario] + -0.1
 #   a10bx <- diabetes %>% 
 #     filter(atc_5 == "A10BX")
-#   
-#   # Create version where one DC is missing
-#   no_a10bx <- diabetes
-#   no_a10bx$res[diabetes$atc_5 %in% c("A10BX")] <- NA
-#   
-#    no_a10bx %>% 
-#     distinct(atc_5, drug)
-#   
-#   ###DM##
-#   # The drug is set to NA becuase all of the data in that class is set to NA
-#   no_a10bx %>%  filter(atc_5 == "A10BX") %>%  distinct(atc_5, nct_id,  drug, res)
-# #     atc_5      nct_id          drug res
-# # 1 A10BX NCT00519142 22mitiglinide  NA
-# # 2 A10BX NCT00097786 23nateglinide  NA
-# # 3 A10BX NCT00568984 24repaglinide  NA
-  
-     
-  # Select iteration
+#  # Select iteration
   ## Add values for specific iteration
 
   my_data$y <-  diabetes$res[diabetes$iteration == iter]
+   
+#   Add a new, NA drug in each class to get class level priors
+  
+  library(truncnorm)
+  
+  y_prec_new <- rtruncnorm(n=7, a=quantile(my_data$y_prec, probs=0.10), b=quantile(my_data$y_prec, probs=0.90), mean=mean(my_data$y_prec), sd=sd(my_data$y_prec))
+  
+  new_d <- as.data.frame(matrix(nrow=7,data=c(y_prec_new[1],162,1,1,25,NA,
+                                              y_prec_new[2],163,1,2,26,NA,
+                                              y_prec_new[3],164,1,3,27,NA,
+                                              y_prec_new[4],165,1,4,28,NA,
+                                              y_prec_new[5],166,1,5,29,NA,
+                                              y_prec_new[6],167,1,6,30,NA,
+                                              y_prec_new[7],168,1,7,31,NA), byrow=TRUE))
+  colnames(new_d) <- names(my_data)
+  my_data1 <- my_data %>%
+    bind_rows(new_d) 
+  
+  ydens <- density(my_data$y, bw=0.25,n=75)
 
   # Make linear combination
   
@@ -107,19 +110,19 @@ mdls <- map(scenarios_random_iterations, function (i) {
   
   dc1 <- inla.make.lincomb(myatc4 = 1) # WDG, should be equivalent to fixed effect
   
-  dc2 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(1, NA, NA, NA, NA, NA, NA), mydrug = c(rep(NA,13),1,rep(NA,10)) ) # Posterior, DC 1
-  dc3 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, 1, NA, NA, NA, NA, NA), mydrug = c(rep(NA,8),1,rep(NA,14))) # Posterior, DC 2 etc
-  dc4 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, 1, NA, NA, NA, NA), mydrug = c(rep(NA,19),1,rep(NA,4))) 
-  dc5 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, 1, NA, NA, NA), mydrug = c(rep(NA,21),1,rep(NA,2))) 
-  dc6 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, 1, NA, NA), mydrug = c(rep(NA,12),1,rep(NA,11))) 
-  dc7 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, 1, NA), mydrug = c(rep(NA,3),1,rep(NA,20))) 
-  dc8 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, NA, 1), mydrug = c(rep(NA,17),1,rep(NA,6))) 
+  dc2 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(1, NA, NA, NA, NA, NA, NA), mydrug = c(rep(NA,24),1,rep(NA,6)) ) # Posterior, DC 1
+  dc3 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, 1, NA, NA, NA, NA, NA), mydrug = c(rep(NA,25),1,rep(NA,5)) ) # Posterior, DC 2 etc
+  dc4 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, 1, NA, NA, NA, NA), mydrug = c(rep(NA,26),1,rep(NA,4)) )
+  dc5 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, 1, NA, NA, NA), mydrug = c(rep(NA,27),1,rep(NA,3)) )
+  dc6 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, 1, NA, NA), mydrug = c(rep(NA,28),1,rep(NA,2)) ) 
+  dc7 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, 1, NA), mydrug = c(rep(NA,29),1,rep(NA,1)) ) 
+  dc8 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, NA, 1), mydrug = c(rep(NA,30),1) ) 
  
 
 
   ## Run model, trial within drug within ATC5 class within ATC4 class, using full data
   mod1_nested <- inla(myform_nested2, 
-                       data = my_data,
+                       data = my_data1,
                        # Add linear combinations to estimate drug-class
                        lincomb = c(a = dc1, b = dc2, c= dc3, d=dc4,e=dc5,f=dc6,g=dc7,h=dc8),
                        # Likelihood distribution
@@ -128,7 +131,7 @@ mdls <- map(scenarios_random_iterations, function (i) {
                        control.family = list(hyper = list(prec = list(fixed = TRUE, initial = 0))),
                        # Likelihood precisions
                        # scale = my_data_test$y_prec,   #Use instead if testing 
-                       scale = my_data$y_prec,
+                       scale = my_data1$y_prec,
                        # Prior distribution for "fixed" effects - really for mu_mu
                        control.fixed = list(mean = 0, prec = 0.25),
                        # Optionally compute DIC
@@ -136,15 +139,18 @@ mdls <- map(scenarios_random_iterations, function (i) {
                        control.compute = list(config=TRUE),
                        control.inla = list(lincomb.derived.only=FALSE))
 
+
   # Return glinides and model
-  list( mdl1 = mod1_nested, scenario= scenario, iter=iter)
+  list( mdl1 = mod1_nested, scenario= scenario, iter=iter, ydens = ydens)
 })
 mdls <- transpose(mdls)
 #a10bx <- as.data.frame(mdls$a10bx)
+ydens <- mdls$ydens
 scns <- mdls$scenario
 itrs <- rep(seq(1, n_its, 1), times= length(unique(unlist(scns))))
 mdl1 <- mdls$mdl1
 mdls <- as.list(c(mdl1))
+
 
 # Storing iterations in a single list
 # scenario[[iter]] <- summary(mod1_nested2)
@@ -166,7 +172,7 @@ mdl_ts <- list()
 mdl_t_tdy <- mdl_t[1] %>%
   as.data.frame() %>%
   mutate(model = 'Full',
-         scenario = scns[[1]]) %>%
+         scenario = scns[[1]]) %>% 
   bind_rows(mdl_t[2] %>%
               as.data.frame() %>%
               mutate(model = 'Full',
@@ -174,14 +180,13 @@ mdl_t_tdy <- mdl_t[1] %>%
   bind_rows(mdl_t[3] %>%
               as.data.frame() %>%
               mutate(model = 'Full',
-                     scenario = scns[[3]])) %>% 
+                     scenario = scns[[3]])) %>%
   as_tibble()
 
 #Drop the non-applicable group(s)
 
 #saveRDS(mdl_t_tdy, "scratch_data/mdl_t_tdy4")
-mdl_t_tdy$model <- as.factor(mdl_t_tdy$model )
-mdl_t_tdy$model <- factor(mdl_t_tdy$model,levels(mdl_t_tdy$model)[c(1,3,2)]) 
+
 
 load("Data/metadata_for_simulation.Rdata")
 # Remove single alpha-glucosidase inhibitor trial, already out of diabetes file
@@ -193,35 +198,64 @@ library(RColorBrewer)
 dput(brewer.pal(n = 7, name = "Set2"))
 
 drugs <- cbind(my_data, diabetes_final) %>%
-  filter(mydrug %in% c(14,9,20,22,13,4,18)) %>%
-  group_by(mydrug) %>%
+  group_by(myatc5) %>%
   sample_n(1) %>%
   arrange(myatc5)
 
 mdl_t_tdy2 <- mdl_t_tdy %>%
-  select(-a.lc.y,-b.lc.y,-c.lc.y,-d.lc.y,-e.lc.y,-f.lc.y,-g.lc.y,-h.lc.y)%>%
+  select(a.lc.x,b.lc.x,c.lc.x,d.lc.x,e.lc.x,f.lc.x,g.lc.x,h.lc.x,model,scenario)%>%
   gather(key = xtype, value = x, -model,-scenario) %>%
-  mutate(group = str_sub(xtype, 1,1)) %>%
+  mutate(group = ifelse(xtype == 'aa.lc.x', 'z', str_sub(xtype, 1,1))) %>%
   bind_cols(mdl_t_tdy %>%
               select(a.lc.y,b.lc.y,c.lc.y,d.lc.y,e.lc.y,f.lc.y,g.lc.y,h.lc.y,model,scenario)%>%
               gather(key = ytype, value = y, -model,-scenario) %>%
               select(ytype, y))%>%
   mutate(myatc5 = match(group, letters)-1) %>%
   left_join(drugs, 'myatc5')  %>%
-  mutate(type = ifelse(is.na(atc_5), "WDG", paste(atc_5, drug, sep=": "))) %>%
-  select(model, scenario, x ,y, group, myatc5, atc_5,drug,type)
+  select(model, scenario, x ,y, group, myatc5, atc_5,drug)
 
-ggplot(mdl_t_tdy2,aes(x=x, y=y, colour=group)) +
-  geom_line() +
-  scale_colour_manual("Posterior distribution of \ninteraction effect estimate for:",
-                      values = c(a = "black", b="#FC8D62",c="#8DA0CB",d= "#E78AC3", e= "#A6D854", f= "#FFD92F", g= "#E5C494",h= "#B3B3B3"),
-                      labels = c(a ="WDG", b="A10BA: metformin", c="A10BB: glimepiride", d="A10BG: rosiglitazone", 
-                                 e="A10BH: sitagliptin", f="A10BJ: lixisenatide", g="A10BK: dapagliflozin", 
-                                 h="A10BX: repaglinide")) +
-  facet_grid( scenario ~., scales = "free_y") +
-  xlim(-1,1) +
-  geom_vline(xintercept = -0.1, linetype = "dashed", color = "grey50") +
-  theme_bw()
+
+d <- as.tibble(matrix(ncol=8,nrow=75*length(scns),
+                          data=c(rep('Null',75*length(scns)),
+                                 c(rep(scns[[1]],75),rep(scns[[2]],75),rep(scns[[3]],75)),
+                                 c(ydens[[1]]$x,ydens[[2]]$x,ydens[[3]]$x),
+                                 c(ydens[[1]]$y,ydens[[2]]$y,ydens[[3]]$y),
+                                 rep('z',75*length(scns)),
+                                 rep(NA,75*length(scns)),
+                                 rep(NA,75*length(scns)),
+                                 rep(NA,75*length(scns))), byrow=FALSE))
+
+
+colnames(d) <- names(mdl_t_tdy2)
+d$x <- as.numeric(d$x)
+d$y <- as.numeric(d$y)
+mdl_t_tdy3 <- mdl_t_tdy2 %>%
+  bind_rows(d)
+
+
+mdl_t_tdy3$model <- factor(mdl_t_tdy3$model)
+mdl_t_tdy3$model <- factor(mdl_t_tdy3$model,levels(mdl_t_tdy3$model)[c(2,1)]) 
+
+
+ggplot(mdl_t_tdy3,aes(x=x, y=y, colour=group)) +
+  geom_line(size=0.9) +
+  scale_colour_manual("Distribution of interaction\n effect estimate:",
+                      values = c(z="grey80",a = "black", b="#FC8D62",c="#8DA0CB",d= "#E78AC3", e= "#A6D854", f= "#FFD92F", g= "#E5C494",h= "#B3B3B3" ),
+                      labels = c(z = "Overall (across all trials)", a ="WDG level", b="Class 1", c="Class 2", d="Class 3", 
+                                 e="Class 4", f="Class 5", g="Class 6", 
+                                 h="Class 7")) +
+  facet_grid(   model ~ scenario  , scales = "free") +
+  xlim(-1.2,1.2) +
+  theme(axis.text.x = element_text(angle=0, vjust = 0, size = 11),
+        axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        text =element_text(size = 14.5),
+        panel.background = element_rect(fill = "white", colour = NULL),
+        strip.text = element_blank(),
+        strip.background = element_blank(),
+        panel.spacing = unit(-0.2,"lines"))
 
 saveRDS(mdl_t_tdy2, "scratch_data/mdl_t_tdy2_sim1")
 

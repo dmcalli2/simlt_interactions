@@ -148,7 +148,7 @@ df_choose1 <- map(c(q05 = 0.05, q50 = 0.5, q95 = 0.95), function(cutpoint){
     group_by(nct_id) %>% 
     slice(round(cutpoint * length(iteration))) %>% 
     ungroup() %>% 
-    mutate(mydrug = 1:3)  %>% 
+    mutate(mydrug = 33)  %>% 
     select(y_prec, y) 
 })
 df_choose[i] <- list(df_choose1) 

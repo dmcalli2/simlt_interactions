@@ -45,7 +45,7 @@ diabetes <- diabetes %>%
   rename(drug = newdrug)
 
 
-set.seed(523)
+set.seed(957)
 
 n_its <- 1 # change based on how many iterations you want
 
@@ -53,7 +53,7 @@ scenarios <- c('atc5_0.05_trial_0.05_drug_0.05','atc5_0.15_trial_0.05_drug_0.05'
 
 slct_itrs <- mean_scenario_s1 %>%
   filter(scenario %in% scenarios) %>%
-  filter(between(mean,-0.101, -0.099))
+  filter(between(mean,-0.1005, -0.0995))
 
 scenarios_selected_iterations <- mean_scenario_s1 %>%
    mutate(row = row_number()) %>%
@@ -87,7 +87,7 @@ mdls <- map(scenarios_random_iterations, function (i) {
   
   library(truncnorm)
   
-  y_prec_new <- rtruncnorm(n=7, a=quantile(my_data$y_prec, probs=0.10), b=quantile(my_data$y_prec, probs=0.90), mean=mean(my_data$y_prec), sd=sd(my_data$y_prec))
+  y_prec_new <- rtruncnorm(n=7, a=quantile(my_data$y_prec, probs=0.25), b=quantile(my_data$y_prec, probs=0.75), mean=mean(my_data$y_prec), sd=sd(my_data$y_prec))
   
   new_d <- as.data.frame(matrix(nrow=7,data=c(y_prec_new[1],162,1,1,25,NA,
                                               y_prec_new[2],163,1,2,26,NA,
@@ -100,23 +100,23 @@ mdls <- map(scenarios_random_iterations, function (i) {
   my_data1 <- my_data %>%
     bind_rows(new_d) 
   
-  ydens <- density(my_data$y, bw=0.25,n=75)
-
+  ydens <- density(my_data$y, bw=0.40,n=75)
+  plot(ydens)
   # Make linear combination
   
   #NB INLA will order each variable used in the lincomb first, so values below should correspond to the myatc5 and mydrug numbers, not their
   #position in the my_data dataframe - e.g., to make a linear combination of drug class 2/4 and drug 5/8 :
   # myatc4 = c(NA,1,NA,NA), mydrug = c(Na,NA,NA,NA,1,NA,NA,NA) - irrespective of where in the input dataframe these are
   
-  dc1 <- inla.make.lincomb(myatc4 = 1) # WDG, should be equivalent to fixed effect
+ # dc1 <- inla.make.lincomb(myatc4 = 1) # WDG, should be equivalent to fixed effect
   
-  dc2 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(1, NA, NA, NA, NA, NA, NA), mydrug = c(rep(NA,24),1,rep(NA,6)) ) # Posterior, DC 1
-  dc3 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, 1, NA, NA, NA, NA, NA), mydrug = c(rep(NA,25),1,rep(NA,5)) ) # Posterior, DC 2 etc
-  dc4 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, 1, NA, NA, NA, NA), mydrug = c(rep(NA,26),1,rep(NA,4)) )
-  dc5 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, 1, NA, NA, NA), mydrug = c(rep(NA,27),1,rep(NA,3)) )
-  dc6 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, 1, NA, NA), mydrug = c(rep(NA,28),1,rep(NA,2)) ) 
-  dc7 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, 1, NA), mydrug = c(rep(NA,29),1,rep(NA,1)) ) 
-  dc8 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, NA, 1), mydrug = c(rep(NA,30),1) ) 
+  dc2 <- inla.make.lincomb( myatc4 = 1, myatc5 = c(1, NA, NA, NA, NA, NA, NA), mydrug = c(rep(NA,24),1,rep(NA,6)) ) # Posterior, DC 1
+  dc3 <- inla.make.lincomb( myatc4 = 1, myatc5 = c(NA, 1, NA, NA, NA, NA, NA), mydrug = c(rep(NA,25),1,rep(NA,5)) ) # Posterior, DC 2 etc
+  dc4 <- inla.make.lincomb( myatc4 = 1, myatc5 = c(NA, NA, 1, NA, NA, NA, NA), mydrug = c(rep(NA,26),1,rep(NA,4)) )
+  dc5 <- inla.make.lincomb( myatc4 = 1, myatc5 = c(NA, NA, NA, 1, NA, NA, NA), mydrug = c(rep(NA,27),1,rep(NA,3)) )
+  dc6 <- inla.make.lincomb( myatc4 = 1, myatc5 = c(NA, NA, NA, NA, 1, NA, NA), mydrug = c(rep(NA,28),1,rep(NA,2)) ) 
+  dc7 <- inla.make.lincomb( myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, 1, NA), mydrug = c(rep(NA,29),1,rep(NA,1)) ) 
+  dc8 <- inla.make.lincomb( myatc4 = 1, myatc5 = c(NA, NA, NA, NA, NA, NA, 1), mydrug = c(rep(NA,30),1) ) 
  
 
 
@@ -124,7 +124,7 @@ mdls <- map(scenarios_random_iterations, function (i) {
   mod1_nested <- inla(myform_nested2, 
                        data = my_data1,
                        # Add linear combinations to estimate drug-class
-                       lincomb = c(a = dc1, b = dc2, c= dc3, d=dc4,e=dc5,f=dc6,g=dc7,h=dc8),
+                       lincomb = c(a = dc2, b= dc3, c=dc4,d=dc5,e=dc6,f=dc7,g=dc8),
                        # Likelihood distribution
                        family = "gaussian",
                        # Fix likelihood hyperpars as the data is fixed with known precision.
@@ -139,7 +139,8 @@ mdls <- map(scenarios_random_iterations, function (i) {
                        control.compute = list(config=TRUE),
                        control.inla = list(lincomb.derived.only=FALSE))
 
-
+  
+ 
   # Return glinides and model
   list( mdl1 = mod1_nested, scenario= scenario, iter=iter, ydens = ydens)
 })
@@ -149,6 +150,7 @@ ydens <- mdls$ydens
 scns <- mdls$scenario
 itrs <- rep(seq(1, n_its, 1), times= length(unique(unlist(scns))))
 mdl1 <- mdls$mdl1
+
 mdls <- as.list(c(mdl1))
 
 
@@ -183,7 +185,6 @@ mdl_t_tdy <- mdl_t[1] %>%
                      scenario = scns[[3]])) %>%
   as_tibble()
 
-#Drop the non-applicable group(s)
 
 #saveRDS(mdl_t_tdy, "scratch_data/mdl_t_tdy4")
 
@@ -203,147 +204,67 @@ drugs <- cbind(my_data, diabetes_final) %>%
   arrange(myatc5)
 
 mdl_t_tdy2 <- mdl_t_tdy %>%
-  select(a.lc.x,b.lc.x,c.lc.x,d.lc.x,e.lc.x,f.lc.x,g.lc.x,h.lc.x,model,scenario)%>%
+  select(contains('x'),model,scenario)%>%
   gather(key = xtype, value = x, -model,-scenario) %>%
-  mutate(group = ifelse(xtype == 'aa.lc.x', 'z', str_sub(xtype, 1,1))) %>%
+  mutate(group =  str_sub(xtype, 1,1)) %>%
   bind_cols(mdl_t_tdy %>%
-              select(a.lc.y,b.lc.y,c.lc.y,d.lc.y,e.lc.y,f.lc.y,g.lc.y,h.lc.y,model,scenario)%>%
+              select(contains('y'),model,scenario)%>%
               gather(key = ytype, value = y, -model,-scenario) %>%
               select(ytype, y))%>%
-  mutate(myatc5 = match(group, letters)-1) %>%
-  left_join(drugs, 'myatc5')  %>%
-  select(model, scenario, x ,y, group, myatc5, atc_5,drug)
+  mutate(myatc5 = match(group, letters))%>%
+  select(model, scenario, x ,y,group, myatc5)
 
 
-d <- as.tibble(matrix(ncol=8,nrow=75*length(scns),
+d <- as.tibble(matrix(ncol=6,nrow=75*length(scns),
                           data=c(rep('Null',75*length(scns)),
                                  c(rep(scns[[1]],75),rep(scns[[2]],75),rep(scns[[3]],75)),
                                  c(ydens[[1]]$x,ydens[[2]]$x,ydens[[3]]$x),
                                  c(ydens[[1]]$y,ydens[[2]]$y,ydens[[3]]$y),
-                                 rep('z',75*length(scns)),
-                                 rep(NA,75*length(scns)),
-                                 rep(NA,75*length(scns)),
-                                 rep(NA,75*length(scns))), byrow=FALSE))
+                                 rep("all",75*length(scns)),
+                                 rep(99,75*length(scns))), byrow=FALSE))
 
 
 colnames(d) <- names(mdl_t_tdy2)
 d$x <- as.numeric(d$x)
 d$y <- as.numeric(d$y)
+d$myatc5 <- as.numeric(d$myatc5)
 mdl_t_tdy3 <- mdl_t_tdy2 %>%
   bind_rows(d)
 
-
+mdl_t_tdy3$myatc5 <- factor(mdl_t_tdy3$myatc5)
 mdl_t_tdy3$model <- factor(mdl_t_tdy3$model)
-mdl_t_tdy3$model <- factor(mdl_t_tdy3$model,levels(mdl_t_tdy3$model)[c(2,1)]) 
+mdl_t_tdy3$model <- factor(mdl_t_tdy3$model,levels(mdl_t_tdy3$model)[c(1,2)]) 
 
 
-ggplot(mdl_t_tdy3,aes(x=x, y=y, colour=group)) +
-  geom_line(size=0.9) +
-  scale_colour_manual("Distribution of interaction\n effect estimate:",
-                      values = c(z="grey80",a = "black", b="#FC8D62",c="#8DA0CB",d= "#E78AC3", e= "#A6D854", f= "#FFD92F", g= "#E5C494",h= "#B3B3B3" ),
-                      labels = c(z = "Overall (across all trials)", a ="WDG level", b="Class 1", c="Class 2", d="Class 3", 
-                                 e="Class 4", f="Class 5", g="Class 6", 
-                                 h="Class 7")) +
-  facet_grid(   model ~ scenario  , scales = "free") +
-  xlim(-1.2,1.2) +
+mdl_t_tdy4 <- mdl_t_tdy3 %>%
+  mutate(myalpha = ifelse(model=="Null",0.8,0.4))
+
+require(RColorBrewer)
+
+display.brewer.all()
+
+pal <- brewer.pal(8, "Dark2")
+
+ggplot(mdl_t_tdy4,aes(x=x, y=y, alpha =myalpha)) +
+  geom_area(aes(group= group, fill=myatc5))+
+  facet_grid(    scenario ~. ,scales = "free" ) +
   theme(axis.text.x = element_text(angle=0, vjust = 0, size = 11),
         axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
         axis.title.y = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
-        text =element_text(size = 14.5),
+        text =element_text(size = 12.5),
         panel.background = element_rect(fill = "white", colour = NULL),
         strip.text = element_blank(),
         strip.background = element_blank(),
-        panel.spacing = unit(-0.2,"lines"))
+        panel.spacing = unit(-0.4,"lines"))+ 
+  scale_alpha(range = c(0.4, 1)) +
+ # scale_fill_manual(values = pal) +
+  geom_vline(xintercept=-0.1, colour="grey70",linetype = 2,  size=0.6)+
+    guides(alpha = FALSE,fill = FALSE, colour=FALSE) +
+  scale_x_continuous("Treatment-covariate interaction \nin wider drug grouping and \nconstituent drug classes",
+                     range(-1.3,1.3), breaks=c(seq(-1,1,0.5)))
 
-saveRDS(mdl_t_tdy2, "scratch_data/mdl_t_tdy2_sim1")
-
-
-## Only 1 iteration per scenario should be taken forward  
-
-#mdls <- list(mdls[[1]],mdls[[21]])
-
-## T distribution fits data well (as per BUGS)
-mdl_t <- map(mdls, function(mdl_each){
-  # Dataframe of values and densities
-  res <- mdl_each$marginals.lincomb %>% 
-    as.data.frame() %>% 
-    as_tibble() %>%
-    rename(wdg_x = a.lc.x, wdg_y = a.lc.y,
-           dc_x = b.lc.x, dc_y = b.lc.y,
-           ndec_x = c.lc.x, ndec_y = c.lc.y)
-  # Extract results
-  mdl_res_each <- mdl_each$summary.lincomb
-  list(mdl_t,mdl_res_each)
-  
-  # Fit data, using mean and sd and df 3 for initial values
-  
-  a <- nls(formula = wdg_y ~ metRology::dt.scaled(wdg_x, df = 3, mean = m, sd = s),
-           data = res, start = list(m = mdl_res_each$mean[[1]], s = mdl_res_each$sd[[1]]/2),
-           algorithm = "port", lower = list(m = c(-5), s = c(0)))
-  a <- summary(a)
-  a <- a$coefficients[,"Estimate"]
-  
-  dc_a <- nls(formula = dc_y ~ metRology::dt.scaled(dc_x, df = 3, mean = m, sd = s),
-              data = res, start = list(m = mdl_res_each$mean[[2]], s = mdl_res_each$sd[[2]]/2),
-              algorithm = "port", lower = list(m = c(-5), s = c(0)))
-  dc_a <- summary(dc_a)
-  dc_a <- dc_a$coefficients[,"Estimate"]
-  
-  ndec_a <- nls(formula = ndec_y ~ metRology::dt.scaled(ndec_x, df = 3, mean = m, sd = s),
-                data = res, start = list(m = mdl_res_each$mean[[3]], s = mdl_res_each$sd[[3]]/2),
-                algorithm = "port", lower = list(m = c(-5), s = c(0)))
-  ndec_a <- summary(ndec_a)
-  ndec_a <- ndec_a$coefficients[,"Estimate"]
-  
-  # Add estimates to dataframe for comparison
-  res$y_new <- metRology::dt.scaled(res$wdg_x, df = 3, mean = a["m"], sd = a["s"])
-  res$dc_y_new <- metRology::dt.scaled(res$dc_x, df = 3, mean = dc_a["m"], sd = dc_a["s"])
-  res$ndec_y_new <- metRology::dt.scaled(res$ndec_x, df = 3, mean = ndec_a["m"], sd = ndec_a["s"])
-  
-  # Plot and return parameters and data
-  plot(res$wdg_x, res$wdg_y, main = paste(c("df", "m", "s"), c(3, round(a,2)), sep = " = ", collapse = ", "))
-  lines(res$wdg_x, res$y_new, col = "red")
-  
-  plot(res$dc_x, res$dc_y, main = paste(c("df", "m", "s"), c(3, round(dc_a,2)), sep = " = ", collapse = ", "))
-  lines(res$dc_x, res$dc_y_new, col = "red")
-  
-  plot(res$ndec_x, res$ndec_y, main = paste(c("df", "m", "s"), c(3, round(ndec_a,2)), sep = " = ", collapse = ", "))
-  lines(res$ndec_x, res$ndec_y_new, col = "red")
-  
-  # Make new dataset with more points
-  res_new <- tibble(x = seq(-2, 2, 0.005))
-  res_new <- res_new %>% 
-    mutate(wdg_y = metRology::dt.scaled(x, df = 3, mean = a["m"], sd = a["s"])) %>%
-    mutate(dc_y = metRology::dt.scaled(x, df = 3, mean = dc_a["m"], sd = dc_a["s"])) %>%
-    mutate(ndec_y = metRology::dt.scaled(x, df = 3, mean = ndec_a["m"], sd = ndec_a["s"]))
-  # Parameters and data
-  list(param = c(a,dc_a,ndec_a), res = res_new)
-})
+#saveRDS(mdl_t_tdy2, "scratch_data/mdl_t_tdy2_sim1")
 
 
-names(mdl_t) <- paste(rep(c("Lo","Me","Hi"),  3), c( rep("Full", 3), rep("Full_noDCinfo",3),rep("NewDrgDC_only",3)), sep = "_")
-mdl_t <- transpose(mdl_t)
-#Drop the non-applicable group(s)
-mdl_t$res$Lo_Full_noDCinfo$dc_y <- NA
-mdl_t$res$Me_Full_noDCinfo$dc_y <- NA
-mdl_t$res$Hi_Full_noDCinfo$dc_y <- NA
-mdl_t$res$Lo_NewDrgDC_only$dc_y <- NA
-mdl_t$res$Me_NewDrgDC_only$dc_y <- NA
-mdl_t$res$Hi_NewDrgDC_only$dc_y <- NA
-mdl_t_g <- bind_rows(mdl_t$res, .id = "scenario_model") %>% 
-  mutate(variation = factor(str_sub(scenario_model,1,2 ) , levels = c("Lo","Me","Hi"),
-                            labels = c("Minimum", "Median", "Maximum")),
-         model = str_sub(scenario_model,3,-1L )) %>%
-  gather(key = y_type, value = y, -scenario_model,-x,-variation, -model)
-
-
-plot1 <- ggplot(mdl_t_g, aes( x = x, y = y,colour = variation)) +
-  geom_line() +
-  facet_grid(model~ y_type) +
-  scale_x_continuous("Treatment-covariate interaction", limits = c(-1, 1)) +
-  scale_y_continuous("Density")
-plot1
-
-saveRDS(mdl_t, file = "scratch_data/Priors_for_newdrug_extclass.Rds")

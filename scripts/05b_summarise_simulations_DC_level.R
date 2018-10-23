@@ -45,7 +45,11 @@ diabetes <- diabetes %>%
   rename(drug = newdrug)
 
 
+<<<<<<< HEAD
 set.seed(3689)
+=======
+set.seed(957)
+>>>>>>> master
 
 n_its <- 1 # change based on how many iterations you want
 
@@ -53,7 +57,11 @@ scenarios <- c('atc5_0.05_trial_0.05_drug_0.15','atc5_0.15_trial_0.05_drug_0.15'
 
 slct_itrs <- mean_scenario_s1 %>%
   filter(scenario %in% scenarios) %>%
+<<<<<<< HEAD
   filter(between(mean,-0.105, -0.095))
+=======
+  filter(between(mean,-0.1005, -0.0995))
+>>>>>>> master
 
 scenarios_selected_iterations <- mean_scenario_s1 %>%
    mutate(row = row_number()) %>%
@@ -258,7 +266,11 @@ ggplot(mdl_t_tdy4,aes(x=x, y=y, alpha =myalpha)) +
         strip.text = element_blank(),
         strip.background = element_blank(),
         panel.spacing = unit(-0.4,"lines"))+ 
+<<<<<<< HEAD
   scale_alpha(range = c(0.3, 1)) +
+=======
+  scale_alpha(range = c(0.4, 1)) +
+>>>>>>> master
  # scale_fill_manual(values = pal) +
   geom_vline(xintercept=-0.1, colour="grey70",linetype = 2,  size=0.6)+
     guides(alpha = FALSE,fill = FALSE, colour=FALSE) +

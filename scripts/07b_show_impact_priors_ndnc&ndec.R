@@ -4,7 +4,7 @@ library(coda)
 library(ggplot2)
 library(rjags)
 library(stringr)
-load.module("glm")
+#load.module("glm")
 
 my_priors_ndnc <- readRDS(file = "scratch_data/Priors_for_newdrug_newclass.Rds")
 my_priors_ndec <- readRDS(file = "scratch_data/Priors_for_newdrug_extclass.Rds")
@@ -192,17 +192,18 @@ res_plt <- res_plt %>%
   mutate(iteration = str_sub(ind, 1, 3),
          prior_type_level = paste0(str_sub(ind, 5,7),str_sub(ind, 12)),
          prior_type_vrn = str_sub(ind, 9,10))%>% 
-  mutate(iteration = factor(iteration, levels = c("non","q05", "q50", "q95"),
-                            labels = c("Prior only","Treatment worse \nwith comorbidity", "Interaction neutral", "Treatment better \nwith comorbidity")),
+  mutate(iteration = factor(iteration, levels = c("q05", "q50", "q95"),
+                            labels = c("Treatment worse \nwith comorbidity", "Interaction neutral", "Treatment better \nwith comorbidity")),
          prior_type_level = factor(prior_type_level, levels = c("vagFull", "WDGFull_noDCinfo","WDGFull", "nDCFull", "nDgFull", "nDgFull_noDCinfo"),
-                        labels = c("Non-informative","WDG level: standard model (no DC)","WDG level: full model","DC level: full model","Drug level: full model","drop" )),
+                        labels = c("Non-informative","WDG level: standard model (no DC)","WDG level: full model","DC level: full model","drop","drop" )),
          prior_type_vrn = factor(prior_type_vrn, levels = c("e_", "Lo", "Me", "Hi"),
                                    labels = c("Non-inf","Strong","Medium","Weak" ))) %>% 
   select(-ind) %>% 
   as_tibble()
 
 res_plt <- res_plt %>% 
-  filter( prior_type_level != 'drop')
+  filter( prior_type_level != 'drop',
+          iteration != "drop")
 
 res_plt <- res_plt %>% 
   group_by(iteration, prior_type_level,prior_type_vrn) %>% 
@@ -216,13 +217,15 @@ effects <- map(df_choose, function(x){
    colMeans(x['y'])
   })
 
-hline_dat <- data.frame(iteration=levels(res_plt$iteration), new=c(effects$non,
-                                                                  effects$q05,
+
+
+
+hline_dat <- data.frame(iteration=unique(res_plt$iteration), new=c(effects$q05,
                                                                   effects$q50,
                                                                   effects$q95)) 
 
 hline_dat2 <- hline_dat %>%
-  mutate( old_wdg=c(rep(-0.1,4) ))
+  mutate( old_wdg=c(rep(-0.1,3) ))
 
 hline_dat3 <- hline_dat2 %>%
   gather(key = line_type, value = hl, -iteration)
@@ -263,10 +266,10 @@ res_plt$prior_type_level <- factor(res_plt$prior_type_level,levels(res_plt$prior
 
 
 plot_impact_alt <- ggplot(res_plt, aes(x = values, y = prior_type_level, fill = ..x..), xlim = c(-0.5,0.5)) + 
-  geom_density_ridges_gradient(scale = 2, panel_scaling = TRUE, alpha = 0.7, quantile_lines = TRUE, quantiles=2) + 
+  geom_density_ridges_gradient(scale = 2, panel_scaling = TRUE, alpha = 1, quantile_lines = TRUE, quantiles=2) + 
   # stat_density_ridges(quantile_lines = TRUE, quantiles = 2) +
-  scale_fill_gradientn(colours = viridis_pal()(9), limits=c(-0.45,0.45), guide= FALSE ) +
-  facet_grid(prior_type_vrn~ iteration  , scales = "free_y", switch = "y") +
+  scale_fill_gradientn(colours = viridis_pal()(27), limits=c(-0.5,0.5), guide= FALSE ) +
+  facet_grid(prior_type_vrn~ iteration  , scales = "free", switch = "y") +
   coord_cartesian(xlim = c(-0.4, 0.4)) +
   geom_vline(data=hline_dat3, aes(xintercept=hl, colour=line_type),linetype = 2,  size=0.8)+
   scale_x_continuous("Treatment-covariate interaction \nin new drug class") +

@@ -112,13 +112,15 @@ rmNullObs <- function(x) {
 }
 my_priors <- rmNullObs(my_priors)
 my_priors <- unlist(my_priors, recursive = FALSE)
-my_priors$vague__Full <- c(m = 0, s = 1, d = 3)
+my_priors$vag.Hi_Full <- c(m = 0, s = 0.75, d = 3)
+my_priors$vag.Me_Full <- c(m = 0, s = 0.75, d = 3)
+my_priors$vag.Lo_Full <- c(m = 0, s = 0.75, d = 3)
 my_priors_names <-names(my_priors)
-# This leaves 19 priors across 4 list elements:
+# This leaves 21 priors across 4 list elements:
 #  - 6 at the WDG level (3 scenarios [hi,Me,Lo vrn] in 2 models [Full, Full no DC])
 #  - 6 at the DC level (3 scenarios [hi,Me,Lo vrn] in 2 models [although in the no DC model these are just WDG priors])
 #  - 6 at the drug level (3 scenarios [hi,Me,Lo vrn] in 2 models [Full, Full no DC])
-#  - 1 vague
+#  - 3 vague (3 scenarios, invariant) 
 
 modelstring <- "
 model{
@@ -195,9 +197,9 @@ res_plt <- res_plt %>%
   mutate(iteration = factor(iteration, levels = c("q05", "q50", "q95"),
                             labels = c("Treatment worse \nwith comorbidity", "Interaction neutral", "Treatment better \nwith comorbidity")),
          prior_type_level = factor(prior_type_level, levels = c("vagFull", "WDGFull_noDCinfo","WDGFull", "nDCFull", "nDgFull", "nDgFull_noDCinfo"),
-                        labels = c("Non-informative","WDG level: standard model (no DC)","WDG level: full model","DC level: full model","drop","drop" )),
-         prior_type_vrn = factor(prior_type_vrn, levels = c("e_", "Lo", "Me", "Hi"),
-                                   labels = c("Non-inf","Strong","Medium","Weak" ))) %>% 
+                        labels = c("Noninformative","WDGstandard","WDGfull","DCfull","drop","drop" )),
+         prior_type_vrn = factor(prior_type_vrn, levels = c("Lo", "Me", "Hi"),
+                                   labels = c("Strong \n(low variation scenario)","Medium \n(medium variation scenario)","Weak \n(high variation scenario)" ))) %>% 
   select(-ind) %>% 
   as_tibble()
 
@@ -235,55 +237,43 @@ save(res_plt,hline_dat3, file = "scratch_data/new_drug_new_class.Rdata")
 
 load( file = "scratch_data/new_drug_new_class.Rdata")
 # 
-# dodge <- position_dodge(width=1)
-# plot_impact <- ggplot(res_plt, aes(x = prior_type_vrn, y = values, fill = prior_type_level)) + 
-#   geom_violin(draw_quantiles = c(0.025, 0.5, 0.975), adjust = 10, position = dodge,width = 1.7) +
-#   facet_grid(.~ iteration  , scales = "free_y", switch = "y") +
-#   scale_y_continuous("Treatment-covariate interaction \nin new drug class", position = "right") +
-#   scale_x_discrete("Prior used",expand = c(0,0)) +
-#   geom_hline(data=hline_dat2, aes(yintercept=hl, linetype = "At WDG level"), color = "black")+
-#   geom_hline(data=hline_dat, aes(yintercept=hl, linetype = "In new drug class"), color = "red")+
-#       theme(axis.text.x = element_text(angle=15, vjust = .05),
-#         axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
-#         axis.title.y = element_text(margin = margin(t = 0, r = 30, b = 0, l = 0)),
-#         text =element_text(size = 14.5),
-#         panel.background = element_rect(fill = "white", colour = "grey80"),
-#         legend.position="bottom")+
-#   scale_fill_discrete("Prior type") +
-#   scale_linetype_manual(name = "'True' effect \nobserved in data", values = c(2, 2), 
-#                         guide = guide_legend(override.aes = list(color = c( "black","red")))) + 
-#   coord_cartesian(ylim = c(-0.3, 0.3))
-# plot_impact
-# 
-# tiff("figures/Impact_of_priors_ndnc.tiff", res = 600, compression = "lzw", unit = "in",
-#      height = 7, width =9)
-# plot_impact
-# dev.off()
 
 require(ggridges)
-require(viridis)
+require(RColorBrewer)
+RColorBrewer::brewer.pal(4,'Dark2')
 res_plt$prior_type_level <- factor(res_plt$prior_type_level,levels(res_plt$prior_type_level)[seq(6,1,-1)]) 
 
 
-plot_impact_alt <- ggplot(res_plt, aes(x = values, y = prior_type_level, fill = ..x..), xlim = c(-0.5,0.5)) + 
-  geom_density_ridges_gradient(scale = 2, panel_scaling = TRUE, alpha = 1, quantile_lines = TRUE, quantiles=2) + 
+plot_impact_alt <- ggplot(res_plt, aes(x = values, y = prior_type_level, fill = prior_type_level), alpha = 0.7, xlim = c(-0.5,0.5)) + 
+  geom_density_ridges(scale = 5, panel_scaling = FALSE, quantile_lines = TRUE, alpha = 0.7, quantiles=2, size=0.3) + 
   # stat_density_ridges(quantile_lines = TRUE, quantiles = 2) +
-  scale_fill_gradientn(colours = viridis_pal()(27), limits=c(-0.5,0.5), guide= FALSE ) +
+  #scale_fill_gradientn(colours = viridis_pal()(27), limits=c(-0.5,0.5), guide= FALSE ) +
   facet_grid(prior_type_vrn~ iteration  , scales = "free", switch = "y") +
   coord_cartesian(xlim = c(-0.4, 0.4)) +
-  geom_vline(data=hline_dat3, aes(xintercept=hl, colour=line_type),linetype = 2,  size=0.8)+
+  geom_vline(data=hline_dat3, aes(xintercept=hl, colour=line_type),linetype = 2,  size=0.6)+
   scale_x_continuous("Treatment-covariate interaction \nin new drug class") +
   theme(axis.text.x = element_text(angle=0, vjust = 0, size = 10),
         axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
         axis.title.y = element_text(margin = margin(t = 0, r = 30, b = 0, l = 10)),
+        axis.text.y = element_blank(),
         text =element_text(size = 14.5),
-        panel.background = element_rect(fill = "white", colour = "grey80"),
-        strip.text = element_text(size=10),
-        legend.position = "bottom")+
-  scale_y_discrete("Prior type", position = "right") +
+        panel.background = element_rect(fill = "white", colour = "white"),
+        strip.text = element_text(size=12),
+        strip.background = element_rect(fill = "white"),
+        legend.position = "right")+
+  scale_y_discrete("Prior strength (based on amount of \nnetwork variation in generating scenario)", breaks=NULL) +
   guides(colour = guide_legend(title.position = "top")) +
   scale_colour_manual(name = "'True' effect observed", values = c(old_wdg = "grey60",  new = "red"), 
-                      labels = c(old_wdg = "In original sample, at WDG level",  new = "In new trial data, at DC level")) 
+                      labels = c(old_wdg = "In original sample, at WDG level",  new = "In new trial data, at DC level")) +
+  scale_fill_manual(name = "Prior type", values = c(Noninformative = "#1B9E77",
+                                                    WDGstandard = "#D95F02",
+                                                    WDGfull = "#7570B3",
+                                                    DCfull= "#E7298A"),
+                    labels = c(Noninformative = "Non-informative",
+                               WDGstandard = "WDG-level; standard model",
+                               WDGfull = "WDG-level; DC model",
+                               DCfull= "DC-level; DC model"),
+                    guide = guide_legend(reverse = TRUE))
 
 plot_impact_alt
 
@@ -291,3 +281,95 @@ tiff("figures/Impact_of_priors_ndnc_alt.tiff", res = 600, compression = "lzw", u
      height = 10, width =8)
 plot_impact_alt
 dev.off()
+
+## Selected panel with shading to emphasise how different results are with various priors
+
+sel_res <- res_plt %>%
+  filter(iteration == "Treatment better \nwith comorbidity") %>%
+  droplevels()
+
+## If true effect lies between original (-0.1) and new drug class estimate (0.228)
+
+mean(c(-0.1,0.228))
+
+# 0.064, and has a (population) SD of 0.1
+
+effectplus <- 0.064 + 0.1
+effectminus <- 0.064 - 0.1
+
+gg <- ggplot(sel_res, aes(x = values, y = prior_type_level, fill = ifelse(..x..<effectplus & ..x..>effectminus,  "within 1SD of true effect", "not"))) +
+  facet_grid(prior_type_vrn~ .  , scales = "free", switch = "y") +
+  stat_density_ridges(
+    geom = "density_ridges_gradient",
+    quantile_lines = TRUE,
+    quantiles = 2) +
+  theme_ridges()+
+  scale_fill_manual(values = c(not = "#B3B3B3B3", `within 1SD of true effect` = "#FF0000B3"), name = NULL)
+
+# Get and add values for these
+
+#Area under curve less than equal to effectminus
+#d_fun(effectminus) 
+
+#Area under curve greater than effectplus
+#1 - d_fun(effectplus)
+
+
+#Area in key region
+# - (d_fun(effectminus)  + (1 - d_fun(effectplus)) )
+
+#Create empirical cumulative distribution function from sample data
+splt.by <- c('prior_type_level','prior_type_vrn')
+sel_res2 <- sel_res %>%
+  ungroup() %>%
+  filter(iteration =="Treatment better \nwith comorbidity") %>%
+  droplevels()
+sel_res2_lst <- split(sel_res2, sel_res2[,splt.by]) 
+
+dfuns <- list()
+for (i in c(1:12)){
+  my_dfuns <- map(sel_res2_lst[[i]][1], function(x) {
+    dfun <- ecdf(x) 
+  })
+  dfuns[[i]] <- my_dfuns
+}
+
+
+areas <- list()
+for (i in c(1:12)){
+  areas[i] <- 1 - (dfuns[[i]]$values(effectminus) +  (1-dfuns[[i]]$values(effectplus)))
+}
+
+names(areas) <- names(sel_res2_lst)
+
+
+sel_res_text <- sel_res2 %>%
+  select(-values) %>%
+  distinct() %>%
+  arrange(prior_type_vrn,prior_type_level)
+
+a <- as.data.frame(paste0(round(unlist(areas),3)*100,"%"))
+names(a) <- 'areaval'
+
+sel_res_text2 <- cbind(sel_res_text,a)
+
+gg + geom_text(
+  data    = sel_res_text2,
+  mapping = aes(x = 0.42, y = prior_type_level, label = areaval),
+  colour = "darkred",
+  vjust   = -2.5
+) +
+  coord_cartesian(xlim = c(-0.25, 0.6)) +
+  theme(axis.text.x = element_text(angle=0, vjust = 0, size = 10),
+        axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(margin = margin(t = 0, r = 30, b = 0, l = 10)),
+        axis.text.y = element_text(angle=0, vjust = 0, size = 10),
+        text =element_text(size = 14.5),
+        panel.background = element_rect(fill = "white", colour = "white"),
+        strip.text = element_text(size=12),
+        strip.background = element_rect(fill = "white"),
+        legend.position = "right") +
+  guides(fill = FALSE) +
+  scale_y_discrete("Prior type", position="right") 
+  
+

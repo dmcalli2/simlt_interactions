@@ -251,7 +251,8 @@ plot_impact_alt <- ggplot(res_plt, aes(x = values, y = prior_type_level, fill = 
   facet_grid(prior_type_vrn~ iteration  , scales = "free", switch = "y") +
   coord_cartesian(xlim = c(-0.4, 0.4)) +
   geom_vline(data=hline_dat3, aes(xintercept=hl, colour=line_type),linetype = 2,  size=0.6)+
-  scale_x_continuous("Treatment-covariate interaction \nin new drug class") +
+  scale_x_continuous("Treatment-covariate interaction \nin new drug class", breaks=c(-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4), 
+                     labels=c("","-0.3","","-0.1","0","0.1","","0.3","")) +
   theme(axis.text.x = element_text(angle=0, vjust = 0, size = 10),
         axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
         axis.title.y = element_text(margin = margin(t = 0, r = 30, b = 0, l = 10)),
@@ -263,7 +264,7 @@ plot_impact_alt <- ggplot(res_plt, aes(x = values, y = prior_type_level, fill = 
         legend.position = "right")+
   scale_y_discrete("Prior strength (based on amount of \nnetwork variation in generating scenario)", breaks=NULL) +
   guides(colour = guide_legend(title.position = "top")) +
-  scale_colour_manual(name = "'True' effect observed", values = c(old_wdg = "grey60",  new = "red"), 
+  scale_colour_manual(name = "Interaction effect observed:", values = c(old_wdg = "grey60",  new = "red"), 
                       labels = c(old_wdg = "In original sample, at WDG level",  new = "In new trial data, at DC level")) +
   scale_fill_manual(name = "Prior type", values = c(Noninformative = "#1B9E77",
                                                     WDGstandard = "#D95F02",
@@ -278,7 +279,7 @@ plot_impact_alt <- ggplot(res_plt, aes(x = values, y = prior_type_level, fill = 
 plot_impact_alt
 
 tiff("figures/Impact_of_priors_ndnc_alt.tiff", res = 600, compression = "lzw", unit = "in",
-     height = 10, width =8)
+     height = 10, width =10)
 plot_impact_alt
 dev.off()
 
@@ -288,23 +289,39 @@ sel_res <- res_plt %>%
   filter(iteration == "Treatment better \nwith comorbidity") %>%
   droplevels()
 
-## If true effect lies between original (-0.1) and new drug class estimate (0.228)
+## If effects$q95 = true
 
-mean(c(-0.1,0.228))
+effectplus <- effects$q95 + 0.1
+effectminus <- effects$q95 - 0.1
 
-# 0.064, and has a (population) SD of 0.1
+makeTransparent = function(..., alpha=0.5) {
+  
+  if(alpha<0 | alpha>1) stop("alpha must be between 0 and 1")
+  
+  alpha = floor(255*alpha)  
+  newColor = col2rgb(col=unlist(list(...)), alpha=FALSE)
+  
+  .makeTransparent = function(col, alpha) {
+    rgb(red=col[1], green=col[2], blue=col[3], alpha=alpha, maxColorValue=255)
+  }
+  
+  newColor = apply(newColor, 2, .makeTransparent, alpha=alpha)
+  
+  return(newColor)
+  
+}
 
-effectplus <- 0.064 + 0.1
-effectminus <- 0.064 - 0.1
 
+makeTransparent("red", alpha=0.6)
 gg <- ggplot(sel_res, aes(x = values, y = prior_type_level, fill = ifelse(..x..<effectplus & ..x..>effectminus,  "within 1SD of true effect", "not"))) +
   facet_grid(prior_type_vrn~ .  , scales = "free", switch = "y") +
   stat_density_ridges(
     geom = "density_ridges_gradient",
     quantile_lines = TRUE,
-    quantiles = 2) +
+    quantiles = 2,
+    size=0.3) +
   theme_ridges()+
-  scale_fill_manual(values = c(not = "#B3B3B3B3", `within 1SD of true effect` = "#FF0000B3"), name = NULL)
+  scale_fill_manual(values = c(not = "grey90", `within 1SD of true effect` = "darkred"), name = NULL)
 
 # Get and add values for these
 
@@ -353,16 +370,16 @@ names(a) <- 'areaval'
 
 sel_res_text2 <- cbind(sel_res_text,a)
 
-gg + geom_text(
+gg2 <- gg + geom_text(
   data    = sel_res_text2,
-  mapping = aes(x = 0.42, y = prior_type_level, label = areaval),
+  mapping = aes(x = 0.5, y = prior_type_level, label = areaval),
   colour = "darkred",
   vjust   = -2.5
 ) +
   coord_cartesian(xlim = c(-0.25, 0.6)) +
   theme(axis.text.x = element_text(angle=0, vjust = 0, size = 10),
         axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
-        axis.title.y = element_text(margin = margin(t = 0, r = 30, b = 0, l = 10)),
+        axis.title.y = element_text(hjust= 0.6,margin = margin(t = 0, r = 20, b = 0, l = 0)),
         axis.text.y = element_text(angle=0, vjust = 0, size = 10),
         text =element_text(size = 14.5),
         panel.background = element_rect(fill = "white", colour = "white"),
@@ -370,6 +387,11 @@ gg + geom_text(
         strip.background = element_rect(fill = "white"),
         legend.position = "right") +
   guides(fill = FALSE) +
-  scale_y_discrete("Prior type", position="right") 
+  scale_y_discrete("Prior type", position="right") +
+  scale_x_continuous("Treatment-covariate interaction \nin new drug class") +
+  geom_vline( aes(xintercept=effects$q95), colour="red",linetype = 2,  size=0.6)
   
-
+tiff("figures/emphasise_diff_posteriors_ndnc.tiff", res = 600, compression = "lzw", unit = "in",
+     height = 10, width =6)
+gg2  
+dev.off()

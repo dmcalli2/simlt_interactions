@@ -1,6 +1,7 @@
 # 06_Show_impact_priors_dc_vs_no_dc_info
 library(metRology)
 library(tidyverse)
+#install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
 library(INLA)
 library(stringr)
 library(magrittr)
@@ -8,8 +9,22 @@ library(magrittr)
 mean_scenarios <- readRDS("scratch_data/mean_scenario")
 key_scens <- readRDS("scratch_data/key_scens")
 scenario_res <- readRDS("scratch_data/scenario_res") %>% 
-  filter(como_prev == "std")
+  filter(como_prev == "std",
+         sim ==1)
 
+# Ascertain total variation for each scenario and sort by this
+
+scen_res_sum <- scenario_res %>%
+  group_by(scenario) %>%
+  filter(como_prev %in% c("hi","low","std")) %>%
+  summarise(total_vrn = mean(sd)) %>%
+  inner_join(scenario_res %>% 
+               select(scenario,sim,como_prev)%>% 
+               distinct()) %>%
+  group_by(sim,como_prev) %>%
+  arrange(total_vrn ,.by_group=TRUE)%>%
+  ungroup()%>%
+  mutate(scenario = str_sub(scenario, 4, -1L))
 
 key_scens_list <-key_scens %>%
   filter(como_prev=="std") %>%
@@ -45,23 +60,17 @@ diabetes <- diabetes %>%
   rename(drug = newdrug)
 
 
-<<<<<<< HEAD
-set.seed(3689)
-=======
-set.seed(957)
->>>>>>> master
+set.seed(2356)
+
 
 n_its <- 1 # change based on how many iterations you want
 
-scenarios <- c('atc5_0.05_trial_0.05_drug_0.15','atc5_0.15_trial_0.05_drug_0.15','atc5_0.25_trial_0.15_drug_0.15') 
+scenarios <- c("atc5_0.05_trial_0.05_drug_0.05", "atc5_0.15_trial_0.05_drug_0.15", "atc5_0.25_trial_0.05_drug_0.15") 
 
 slct_itrs <- mean_scenario_s1 %>%
   filter(scenario %in% scenarios) %>%
-<<<<<<< HEAD
   filter(between(mean,-0.105, -0.095))
-=======
-  filter(between(mean,-0.1005, -0.0995))
->>>>>>> master
+
 
 scenarios_selected_iterations <- mean_scenario_s1 %>%
    mutate(row = row_number()) %>%
@@ -179,19 +188,12 @@ mdl_t <- map(mdls, function(mdl_each){
 }) # abbreviated this function here to view distributions of marginals
 mdl_ts <- list()
 
-mdl_t_tdy <- mdl_t[1] %>%
-  as.data.frame() %>%
-  mutate(model = 'Full',
-         scenario = scns[[1]]) %>% 
-  bind_rows(mdl_t[2] %>%
-              as.data.frame() %>%
-              mutate(model = 'Full',
-                     scenario = scns[[2]])) %>%
-  bind_rows(mdl_t[3] %>%
-              as.data.frame() %>%
-              mutate(model = 'Full',
-                     scenario = scns[[3]])) %>%
-  as_tibble()
+
+
+mdl_t_tdy <- bind_rows(mdl_t) %>%
+  mutate(scenario= rep(unlist(scns), each=75),
+         model = 'Full')
+  
 
 
 #saveRDS(mdl_t_tdy, "scratch_data/mdl_t_tdy4")
@@ -212,22 +214,38 @@ drugs <- cbind(my_data, diabetes_final) %>%
   arrange(myatc5)
 
 mdl_t_tdy2 <- mdl_t_tdy %>%
-  select(contains('x'),model,scenario)%>%
+  select(contains('x'),scenario,model)%>%
   gather(key = xtype, value = x, -model,-scenario) %>%
   mutate(group =  str_sub(xtype, 1,1)) %>%
   bind_cols(mdl_t_tdy %>%
-              select(contains('y'),model,scenario)%>%
-              gather(key = ytype, value = y, -model,-scenario) %>%
+              select(contains('y'),scenario,model)%>%
+              gather(key = ytype, value = y,-model,-scenario) %>%
               select(ytype, y))%>%
   mutate(myatc5 = match(group, letters))%>%
-  select(model, scenario, x ,y,group, myatc5)
+  select( scenario, x ,y,model,group, myatc5)
 
+ydens_x <- map(ydens, function(ydeach){
+  # Dataframe of values and densities
+   x <-  ydeach$x %>%
+    as.data.frame() %>% 
+    as_tibble() 
+})
+ydens_y <- map(ydens, function(ydeach){
+  # Dataframe of values and densities
+  y <-  ydeach$y %>%
+    as.data.frame() %>% 
+    as_tibble() 
+})
+
+ydens2 <- bind_rows(ydens_x) %>%
+  bind_cols(bind_rows(ydens_y))
+names(ydens2) <- c("x","y")
 
 d <- as.tibble(matrix(ncol=6,nrow=75*length(scns),
-                          data=c(rep('Null',75*length(scns)),
-                                 c(rep(scns[[1]],75),rep(scns[[2]],75),rep(scns[[3]],75)),
-                                 c(ydens[[1]]$x,ydens[[2]]$x,ydens[[3]]$x),
-                                 c(ydens[[1]]$y,ydens[[2]]$y,ydens[[3]]$y),
+                          data=c(c(rep(unlist(scns),each=75)),
+                                 c(ydens2$x),
+                                 c(ydens2$y),
+                                 rep('Null',75*length(scns)),
                                  rep("all",75*length(scns)),
                                  rep(99,75*length(scns))), byrow=FALSE))
 
@@ -247,15 +265,11 @@ mdl_t_tdy3$model <- factor(mdl_t_tdy3$model,levels(mdl_t_tdy3$model)[c(1,2)])
 mdl_t_tdy4 <- mdl_t_tdy3 %>%
   mutate(myalpha = ifelse(model=="Null",0.8,0.4))
 
-require(RColorBrewer)
-
-display.brewer.all()
-
 pal <- brewer.pal(8, "Dark2")
 
-ggplot(mdl_t_tdy4,aes(x=x, y=y, alpha =myalpha)) +
+gg <- ggplot(mdl_t_tdy4,aes(x=x, y=y, alpha =myalpha)) +
   geom_area(aes(group= group, fill=myatc5))+
-  facet_grid(    scenario ~. ,scales = "free" ) +
+  facet_grid(  scenario ~.   ) +
   theme(axis.text.x = element_text(angle=0, vjust = 0, size = 11),
         axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
         axis.title.y = element_blank(),
@@ -265,18 +279,17 @@ ggplot(mdl_t_tdy4,aes(x=x, y=y, alpha =myalpha)) +
         panel.background = element_rect(fill = "white", colour = NULL),
         strip.text = element_blank(),
         strip.background = element_blank(),
-        panel.spacing = unit(-0.4,"lines"))+ 
-<<<<<<< HEAD
+        panel.spacing = unit(-1,"lines"))+ 
   scale_alpha(range = c(0.3, 1)) +
-=======
-  scale_alpha(range = c(0.4, 1)) +
->>>>>>> master
+
  # scale_fill_manual(values = pal) +
   geom_vline(xintercept=-0.1, colour="grey70",linetype = 2,  size=0.6)+
     guides(alpha = FALSE,fill = FALSE, colour=FALSE) +
   scale_x_continuous("Treatment-covariate interaction \nin wider drug grouping and \nconstituent drug classes",
                      range(-1.3,1.3), breaks=c(seq(-1,1,0.5)))
 
-#saveRDS(mdl_t_tdy2, "scratch_data/mdl_t_tdy2_sim1")
-
+tiff("figures/show_underlying_distributions.tiff", res = 600, compression = "lzw", unit = "in",
+     height = 10, width =6)
+gg  
+dev.off()
 

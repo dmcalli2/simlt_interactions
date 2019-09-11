@@ -44,7 +44,7 @@ rheum <- rheum %>%
   select(-drug) %>%
   rename(drug = newdrug)
 
-set.seed(375)
+set.seed(719)
 
 n_its <- 1 # change based on how many iterations you want
 
@@ -277,11 +277,11 @@ mdl_t_tdy$model <- factor(mdl_t_tdy$model,levels(mdl_t_tdy$model)[c(3,1,2)])
 
 ggplot(mdl_t_tdy) +
   geom_line( aes(x=a.lc.x,y=a.lc.y, colour="WDG")) +
-  geom_line( aes(x=b.lc.x,y=b.lc.y, colour= "NewDrug_NewDC_Pathlevel")) +
-  geom_line( aes(x=c.lc.x,y=c.lc.y, colour = "NewDrug_NewDC_DClevel")) +
-  geom_line( aes(x=d.lc.x,y=d.lc.y, colour= "NewDrug_NewDC_Druglevel")) +
+  geom_line( aes(x=b.lc.x,y=b.lc.y, colour= "NewDrug_extDC_Pathlevel")) +
+  geom_line( aes(x=c.lc.x,y=c.lc.y, colour = "NewDrug_extDC_DClevel")) +
+  geom_line( aes(x=d.lc.x,y=d.lc.y, colour= "NewDrug_extDC_Druglevel")) +
   scale_colour_manual("", 
-                      breaks = c( "WDG", "NewDrug_NewDC_Pathlevel","NewDrug_NewDC_DClevel","NewDrug_NewDC_Druglevel","NewDrug_NewDC_DClevel"),
+                      breaks = c( "WDG", "NewDrug_extDC_Pathlevel","NewDrug_extDC_DClevel","NewDrug_extDC_Druglevel","NewDrug_extDC_DClevel"),
                       values = c("purple","red", "darkgreen","orange")) +
   facet_grid( model ~ scenario) +
   xlim(-1,1) +
@@ -302,7 +302,7 @@ mdl_t <- map(mdls, function(mdl_each){
     rename(wdg_x = a.lc.x, wdg_y = a.lc.y,
            pth_x = b.lc.x, pth_y = b.lc.y,
            dc_x = c.lc.x, dc_y = c.lc.y,
-           ndnc_x = d.lc.x, ndnc_y = d.lc.y)
+           ndec_x = d.lc.x, ndec_y = d.lc.y)
   # Extract results
   mdl_res_each <- mdl_each$summary.lincomb
   list(mdl_t,mdl_res_each)
@@ -327,17 +327,17 @@ mdl_t <- map(mdls, function(mdl_each){
   dc_a <- summary(dc_a)
   dc_a <- dc_a$coefficients[,"Estimate"]
   
-  ndnc_a <- nls(formula = ndnc_y ~ metRology::dt.scaled(ndnc_x, df = 3, mean = m, sd = s),
+  ndec_a <- nls(formula = ndec_y ~ metRology::dt.scaled(ndec_x, df = 3, mean = m, sd = s),
            data = res, start = list(m = mdl_res_each$mean[[4]], s = mdl_res_each$sd[[4]]/2),
            algorithm = "port", lower = list(m = c(-5), s = c(0)))
-  ndnc_a <- summary(ndnc_a)
-  ndnc_a <- ndnc_a$coefficients[,"Estimate"]
+  ndec_a <- summary(ndec_a)
+  ndec_a <- ndec_a$coefficients[,"Estimate"]
   
   # Add estimates to dataframe for comparison
   res$y_new <- metRology::dt.scaled(res$wdg_x, df = 3, mean = a["m"], sd = a["s"])
   res$pth_y_new <- metRology::dt.scaled(res$pth_x, df = 3, mean = pth_a["m"], sd = pth_a["s"])
   res$dc_y_new <- metRology::dt.scaled(res$dc_x, df = 3, mean = dc_a["m"], sd = dc_a["s"])
-  res$ndnc_y_new <- metRology::dt.scaled(res$ndnc_x, df = 3, mean = ndnc_a["m"], sd = ndnc_a["s"])
+  res$ndec_y_new <- metRology::dt.scaled(res$ndec_x, df = 3, mean = ndec_a["m"], sd = ndec_a["s"])
 
   # Plot and return parameters and data
   plot(res$wdg_x, res$wdg_y, main = paste(c("df", "m", "s"), c(3, round(a,2)), sep = " = ", collapse = ", "))
@@ -349,8 +349,8 @@ mdl_t <- map(mdls, function(mdl_each){
   plot(res$dc_x, res$dc_y, main = paste(c("df", "m", "s"), c(3, round(dc_a,2)), sep = " = ", collapse = ", "))
   lines(res$dc_x, res$dc_y_new, col = "red")
   
-  plot(res$ndnc_x, res$ndnc_y, main = paste(c("df", "m", "s"), c(3, round(ndnc_a,2)), sep = " = ", collapse = ", "))
-  lines(res$ndnc_x, res$ndnc_y_new, col = "red")
+  plot(res$ndec_x, res$ndec_y, main = paste(c("df", "m", "s"), c(3, round(ndec_a,2)), sep = " = ", collapse = ", "))
+  lines(res$ndec_x, res$ndec_y_new, col = "red")
 
   # Make new dataset with more points
   res_new <- tibble(x = seq(-2, 2, 0.005))
@@ -358,9 +358,9 @@ mdl_t <- map(mdls, function(mdl_each){
     mutate(wdg_y = metRology::dt.scaled(x, df = 3, mean = a["m"], sd = a["s"])) %>%
     mutate(pth_y = metRology::dt.scaled(x, df = 3, mean = pth_a["m"], sd = pth_a["s"])) %>%
     mutate(dc_y = metRology::dt.scaled(x, df = 3, mean = dc_a["m"], sd = dc_a["s"])) %>%
-    mutate(ndnc_y = metRology::dt.scaled(x, df = 3, mean = ndnc_a["m"], sd = ndnc_a["s"]))
+    mutate(ndec_y = metRology::dt.scaled(x, df = 3, mean = ndec_a["m"], sd = ndec_a["s"]))
   # Parameters and data
-  list(param = c(a,pth_a,dc_a,ndnc_a), res = res_new)
+  list(param = c(a,pth_a,dc_a,ndec_a), res = res_new)
 })
 
 

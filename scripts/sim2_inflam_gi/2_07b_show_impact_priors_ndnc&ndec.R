@@ -1,4 +1,6 @@
 #07_show_impact_prior
+install.packages("rjags")
+
 library(tidyverse)
 library(coda)
 library(ggplot2)
@@ -110,7 +112,9 @@ my_priors <- priors
 names(my_priors) <- c('WDG','Pth','nDC', 'nDg')
 
 my_priors <- unlist(my_priors, recursive = FALSE)
-my_priors$vague__Full <- c(m = 0, s = 1, d = 3)
+my_priors$vag.Hi_Full <- c(m = 0, s = 0.75, d = 3)
+my_priors$vag.Me_Full <- c(m = 0, s = 0.75, d = 3)
+my_priors$vag.Lo_Full <- c(m = 0, s = 0.75, d = 3)
 my_priors_names <-names(my_priors)
 # This leaves 19 priors across 4 list elements:
 #  - 6 at the WDG level (3 scenarios [hi,Me,Lo vrn] in 2 models [Full, Full no DC])
@@ -205,25 +209,28 @@ res_plt2 <- res_plt %>%
          prior_type_level = paste0(str_sub(ind, 8,10),str_sub(ind, 15)),
          prior_type_vrn = str_sub(ind, 12,13)) %>% 
   mutate(iteration = factor(iteration, levels = c("non","q05", "q50", "q95"),
-                            labels = c("Prior only","Treatment worse \nwith comorbidity", "Interaction neutral", "Treatment better \nwith comorbidity")),
+                            labels = c("Priors only","Treatment worse \nwith comorbidity", "Interaction neutral", "Treatment better \nwith comorbidity")),
          scenario = factor(scenario, levels = c("lo", "me", "hi"),
-                            labels = c("Low variation", "Medium variation", "High variation")),
+                            labels = c("Strong \n(low variation scenario)", "Medium \n(medium variation scenario)", "Weak \n(high variation scenario)")),
          prior_type_level = factor(prior_type_level, levels = 
                                      c("vagFull", 
                                        "WDGFull_noDC_Path_info","PthFull_noDC_Path_info", "nDCFull_noDC_Path_info", "nDgFull_noDC_Path_info",
                                        "WDGNewDrgDC_only","PthNewDrgDC_only", "nDCNewDrgDC_only", "nDgNewDrgDC_only",
                                        "WDGFull","PthFull", "nDCFull", "nDgFull"),
-                        labels = c("Non-informative", 
-                                   "WDG level: standard model","drop1", "drop2", "drop3",
-                                   "drop4","drop5", "DC level: single DC only model", "Drug level: single DC only model",
-                                   "WDG level: full model","Path level: full model", "DC level: full model", "Drug level: full model")),
-         prior_type_vrn = factor(prior_type_vrn, levels = c("e_", "Lo", "Me", "Hi"),
-                                   labels = c("Non-inf","Strong","Medium","Weak" ))) %>% 
+                        labels = c("Noninformative", 
+                                   "WDGstandard","drop", "drop", "drop",
+                                   "drop","drop", "drop", "drop",
+                                   "WDGfull","drop", "DCfull", "drop")),
+         prior_type_vrn = factor(prior_type_vrn, levels = c( "Lo", "Me", "Hi"),
+                                   labels = c("Strong","Medium","Weak" ))) %>% 
   select(-ind) %>% 
   as_tibble()
 
 res_plt <- res_plt2 %>% 
-  filter(!prior_type_level %in% c(paste0(rep('drop',5),seq(1,5,1))))
+  filter(prior_type_level != "drop",
+         iteration != "drop")%>%
+  droplevels()
+
 
 res_plt <- res_plt %>% 
   group_by(iteration, scenario, prior_type_level,prior_type_vrn) %>% 
@@ -246,7 +253,7 @@ hline_dat <- hline_dat %>%
   arrange(scenario, iteration)
 hline_dat <- hline_dat %>%
   mutate( new = as.vector(c(effects$non.lo,
-                           effects$q05.lo,
+                            effects$q05.lo,
                            effects$q50.lo,
                            effects$q95.lo,
                            effects$non.me,
@@ -260,12 +267,12 @@ hline_dat <- hline_dat %>%
 
 
 hline_dat2 <- hline_dat %>%
-  mutate( old_wdg=c(-0.1,rep(NA,3),-0.1,rep(NA,3),-0.1,rep(NA,3) ) )
+  mutate( old_wdg=c(-0.1))
 
 hline_dat3 <- hline_dat2 %>%
-  mutate(old_dc=c(my_priors_ndec$param$Lo_Full[5],rep(NA,3),
-               my_priors_ndec$param$Me_Full[5],rep(NA,3),
-               my_priors_ndec$param$Hi_Full[5],rep(NA,3)))
+  mutate(old_dc=c(rep(my_priors_ndec$param$Lo_Full[5],4),
+               rep(my_priors_ndec$param$Me_Full[5],4),
+               rep(my_priors_ndec$param$Hi_Full[5],4)))
 
 
 save(res_plt,hline_dat, file = "scratch_data/new_drug_ext_class_sim2.Rdata")
@@ -273,9 +280,10 @@ save(res_plt,hline_dat, file = "scratch_data/new_drug_ext_class_sim2.Rdata")
 load(file = "scratch_data/new_drug_ext_class_sim2.Rdata")
 
 res_plt <- res_plt %>%
-  filter( !( scenario =="Low variation" & prior_type_vrn %in% c("Medium","Weak") ),
-          !( scenario =="Medium variation" & prior_type_vrn %in% c("Strong","Weak") ),
-          !( scenario =="High variation" & prior_type_vrn %in% c("Medium","Strong") ))
+  filter( !( scenario =="Strong \n(low variation scenario)" & prior_type_vrn %in% c("Medium","Weak") ),
+          !( scenario =="Medium \n(medium variation scenario)" & prior_type_vrn %in% c("Strong","Weak") ),
+          !( scenario =="Weak \n(high variation scenario)" & prior_type_vrn %in% c("Medium","Strong") )) %>%
+  droplevels()
 
 # 
 # dodge <- position_dodge(width=0.8)
@@ -307,38 +315,78 @@ require(viridis)
 
 
 #res_plt$scenario <- factor(res_plt$scenario,levels(res_plt$scenario)[c(3,2,1)]) 
-res_plt$prior_type_level <- factor(res_plt$prior_type_level,levels(res_plt$prior_type_level)[seq(13,1,-1)]) 
+res_plt$prior_type_level <- factor(res_plt$prior_type_level,levels(res_plt$prior_type_level)[c(4,3,2,1)]) 
 
 
 hline_dat4 <- hline_dat3 %>%
-  gather(key = line_type, value = hl, -iteration,-scenario)
+  gather(key = line_type, value = hl, -iteration,-scenario) %>%
+  filter(!(line_type =="old_wdg" & !iteration %in% c('Priors only'))) 
 
 
-plot_impact_alt <- ggplot(res_plt, aes(x = values, y = prior_type_level,  fill = ..x..), xlim = c(-0.5,0.7)) + 
-  geom_density_ridges_gradient(scale = 2.5, panel_scaling = TRUE, alpha = 0.7, quantile_lines = TRUE, quantiles=2, colour="grey30") + 
+
+makeTransparent = function(..., alpha=0.5) {
+  
+  if(alpha<0 | alpha>1) stop("alpha must be between 0 and 1")
+  
+  alpha = floor(255*alpha)  
+  newColor = col2rgb(col=unlist(list(...)), alpha=FALSE)
+  
+  .makeTransparent = function(col, alpha) {
+    rgb(red=col[1], green=col[2], blue=col[3], alpha=alpha, maxColorValue=255)
+  }
+  
+  newColor = apply(newColor, 2, .makeTransparent, alpha=alpha)
+  
+  return(newColor)
+  
+}
+
+
+makeTransparent("black", alpha=0.3)
+
+plot_impact_alt <- ggplot(res_plt, aes(x = values, y = prior_type_level, fill = prior_type_level), alpha = 0.7, xlim = c(-0.7,0.7)) + 
+  geom_density_ridges(scale = 5, panel_scaling = FALSE, quantile_lines = TRUE, alpha = 0.7, quantiles=2, size=0.3) + 
   # stat_density_ridges(quantile_lines = TRUE, quantiles = 2) +
-  scale_fill_gradientn(colours = viridis_pal()(9), limits=c(-0.7,0.775), guide= FALSE ) +
-  facet_grid(scenario ~ iteration   , scales = "free", 
-             switch = "y") +
+  #scale_fill_gradientn(colours = viridis_pal()(27), limits=c(-0.5,0.5), guide= FALSE ) +
+  facet_grid(scenario~ iteration  , scales = "free", switch = "y")+
   coord_cartesian(xlim = c(-0.6, 0.7)) +
-  geom_vline(data=hline_dat4, aes(xintercept=hl, colour=line_type),linetype = 2,  size=0.8)+
-  scale_x_continuous("Treatment-covariate interaction \nin new drug class", breaks = c(seq(-0.5,0.7, 0.1)),
-                     labels = c("","-0.4","","-0.2","","0","","0.2","","0.4","","0.6","")) +
-  theme(axis.text.x = element_text(angle=0, vjust = 0, size = 11),
+  geom_vline(data=hline_dat4, aes(xintercept=hl, colour=line_type),linetype = 2,  size=0.3)+
+  scale_x_continuous("Treatment-covariate interaction \nin new drug class", breaks = c(seq(-0.5,0.5, 0.25)),
+                     labels = c("-0.5","-0.25","0","0.25","0.5")) +
+  theme(axis.text.x = element_text(angle=0, vjust = 0, size = 9),
         axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
         axis.title.y = element_text(margin = margin(t = 0, r = 30, b = 0, l = 10)),
         text =element_text(size = 14.5),
-        panel.background = element_rect(fill = "white", colour = "grey80"),
-        strip.text = element_text(size=10),
-        legend.position= "bottom")+
-    scale_y_discrete("Prior type", position = "right") +
+        axis.text.y = element_blank(),
+        panel.background = element_rect(fill = "white", colour = "white"),
+        strip.text = element_text(size=12),
+        strip.background = element_rect(fill = "white"),
+        legend.position= "right",
+        legend.key = element_rect(fill = "white"))+
+    scale_y_discrete("Prior strength (based on amount of \nnetwork variation in generating scenario)", position = "left", breaks=NULL) +
   guides(colour = guide_legend(title.position = "top")) +
-  scale_colour_manual(name = "'True' effect observed", values = c(old_wdg = "grey60", old_dc = "blue", new = "red"), 
-                      labels = c(old_wdg = "In original sample, at WDG level", old_dc = "In original sample, at DC level", new = "In new trial data, at DC level")) 
+  scale_colour_manual(name = "Interaction effect observed", values = c(old_wdg = "#0000004C", old_dc = "#0000FF99", new = "red"), 
+                      labels = c(old_wdg = "In original sample, at WDG level", 
+                                 old_dc = "In original sample, at DC level", 
+                                 new = "In new trial data, at DC level"))+
+  scale_fill_manual(name = "Prior type", values = c(Noninformative = "#1B9E77",
+                                                    WDGstandard = "#D95F02",
+                                                    WDGfull = "#7570B3",
+                                                    DCfull= "#E7298A"),
+                    labels = c(Noninformative = "Non-informative",
+                               WDGstandard = "WDG-level; standard model",
+                               WDGfull = "WDG-level; DC model",
+                               DCfull= "DC-level; DC model"),
+                    guide = guide_legend(reverse = TRUE))
 
 plot_impact_alt
 
-tiff("figures/Impact_of_priors_sim2_ndec_alt.tiff", res = 600, compression = "lzw", unit = "in",
-     height = 7, width =10)
+tiff("figures/Impact_of_priors_ndec_alt.tiff", res = 600, compression = "lzw", unit = "in",
+     height = 10, width =10)
 plot_impact_alt
 dev.off()
+
+## Selected panel with shading to emphasise how different results are with various priors
+
+
+

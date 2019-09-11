@@ -71,7 +71,7 @@ a10bn <- a10bn %>%
   inner_join(class_effect)
 set.seed(1234)
 a10bn <- a10bn %>% 
-  mutate(y = rnorm(3000, class_effect, 0.05) + rnorm(1000, 0, 0.15))
+  mutate(y = rnorm(3000, class_effect, 0) + rnorm(1000, 0, 0.15) + rnorm(1000, 0, 0.15))
 
 ## examine weighted mean
 ## Find that quite large treatment effects evident 
@@ -261,7 +261,8 @@ plot_impact_alt <- ggplot(res_plt, aes(x = values, y = prior_type_level, fill = 
         panel.background = element_rect(fill = "white", colour = "white"),
         strip.text = element_text(size=12),
         strip.background = element_rect(fill = "white"),
-        legend.position = "right")+
+        legend.position = "right",
+        legend.key = element_rect(fill = "white"))+
   scale_y_discrete("Prior strength (based on amount of \nnetwork variation in generating scenario)", breaks=NULL) +
   guides(colour = guide_legend(title.position = "top")) +
   scale_colour_manual(name = "Interaction effect observed:", values = c(old_wdg = "grey60",  new = "red"), 
@@ -280,6 +281,50 @@ plot_impact_alt
 
 tiff("figures/Impact_of_priors_ndnc_alt.tiff", res = 600, compression = "lzw", unit = "in",
      height = 10, width =10)
+plot_impact_alt
+dev.off()
+
+# Alternative simpler version
+
+res_plt <- res_plt %>%
+  filter(prior_type_level %in% c("Noninformative", "DCfull")) %>%
+  droplevels()
+
+res_plt$prior_type_level <- factor(res_plt$prior_type_level,levels(res_plt$prior_type_level)[seq(2,1,-1)]) 
+
+plot_impact_alt <- ggplot(res_plt, aes(x = values, y = prior_type_level, fill = prior_type_level), alpha = 0.7, xlim = c(-0.5,0.5)) + 
+  geom_density_ridges(colour = "white", scale = 2, panel_scaling = FALSE, quantile_lines = TRUE, alpha = 0.7, quantiles=2, size=0.3) + 
+  # stat_density_ridges(quantile_lines = TRUE, quantiles = 2) +
+  #scale_fill_gradientn(colours = viridis_pal()(27), limits=c(-0.5,0.5), guide= FALSE ) +
+  facet_grid(prior_type_vrn~ iteration  , scales = "free", switch = "y") +
+  coord_cartesian(xlim = c(-0.45, 0.45)) +
+  geom_vline(data=hline_dat3, aes(xintercept=hl, colour=line_type),linetype = 1,  size=0.8)+
+  scale_x_continuous("Treatment-covariate interaction \nin new drug class", breaks=c(-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4), 
+                     labels=c("-0.4","","-0.2","","0","","0.2","","0.4")) +
+  theme(axis.text.x = element_text(angle=0, vjust = 0, size = 10),
+        axis.title.x = element_text(margin = margin(t = 30, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(margin = margin(t = 0, r = 30, b = 0, l = 10)),
+        axis.text.y = element_blank(),
+        text =element_text(size = 14.5),
+        panel.background = element_rect(fill = "white", colour = "white"),
+        strip.text = element_text(size=12),
+        strip.background = element_rect(fill = "white"),
+        legend.position = "right",
+        legend.key = element_rect(fill = "white"))+
+  scale_y_discrete("Prior strength (based on amount of \nnetwork variation in generating scenario)", breaks=NULL) +
+  guides(colour = guide_legend(title.position = "top")) +
+  scale_colour_manual(name = "Interaction effect observed:", values = c(old_wdg = "grey60",  new = "red"), 
+                      labels = c(old_wdg = "In original sample, \nat wider drug \ngrouping level",  new = "In new trial data, \nat drug class level\n")) +
+  scale_fill_manual(name = "Prior type", values = c(Noninformative = "#1B9E77",
+                                                    DCfull= "purple"),
+                    labels = c(Noninformative = "Non-informative",
+                               DCfull= "Class-level from DC model"),
+                    guide = guide_legend(reverse = TRUE))
+
+plot_impact_alt
+
+tiff("figures/Impact_of_priors_ndnc_alt_v2.tiff", res = 600, compression = "lzw", unit = "in",
+     height = 8, width =10)
 plot_impact_alt
 dev.off()
 
@@ -321,7 +366,7 @@ gg <- ggplot(sel_res, aes(x = values, y = prior_type_level, fill = ifelse(..x..<
     quantiles = 2,
     size=0.3) +
   theme_ridges()+
-  scale_fill_manual(values = c(not = "grey90", `within 1SD of true effect` = "darkred"), name = NULL)
+  scale_fill_manual(values = c(not = "grey90", `within 1SD of true effect` = "firebrick4"), name = NULL)
 
 # Get and add values for these
 
@@ -373,7 +418,7 @@ sel_res_text2 <- cbind(sel_res_text,a)
 gg2 <- gg + geom_text(
   data    = sel_res_text2,
   mapping = aes(x = 0.5, y = prior_type_level, label = areaval),
-  colour = "darkred",
+  colour = "firebrick4",
   vjust   = -2.5
 ) +
   coord_cartesian(xlim = c(-0.25, 0.6)) +

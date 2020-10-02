@@ -1,5 +1,6 @@
 #02b_run_inla_model
 library(INLA)
+library(tidyverse)
 INLA:::inla.dynload.workaround() 
 with_args <- TRUE
 ############ From now on putty, pass with args
@@ -45,6 +46,7 @@ print(como_prev)
                  # Prior distribution for "fixed" effects - really for mu_mu 
                  control.fixed = list(mean = 0, prec = 0.25),
                  # Optionally compute DIC
+                 control.compute = list(config=TRUE,dic = TRUE, waic = TRUE),
                  verbose = FALSE)
     # Storing iterations in a single list
     scenario[[iter]] <- summary(mod1_nested2)
@@ -75,7 +77,7 @@ print(como_prev)
                            control.fixed = list(mean = 0, prec = 0.25),
                            # Optionally compute DIC
                            verbose = FALSE,
-                           control.compute = list(config=TRUE),
+                           control.compute = list(config=TRUE,dic = TRUE, waic = TRUE),
                            control.inla = list(lincomb.derived.only=FALSE))
       
       drug_models[[j]] <- summary(mod1_nested3)

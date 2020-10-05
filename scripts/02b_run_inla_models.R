@@ -85,4 +85,6 @@ print(como_prev)
  }
 
   # Saving each list as a data file
-  saveRDS(drug_models, scenario, file = paste0("simuln/sim1/",como_prev,"/output/sim1_",argsd[1],"_",argsd[2],"_",choose_scenario, ".rds" ))
+  saveRDS(drug_models, file = paste0("simuln/sim1/",como_prev,"/output/sim1_",argsd[1],"_",argsd[2],"_",choose_scenario, "_drug.rds" ))
+  saveRDS(scenario, file = paste0("simuln/sim1/",como_prev,"/output/sim1_",argsd[1],"_",argsd[2],"_",choose_scenario, "_full.rds" ))
+  

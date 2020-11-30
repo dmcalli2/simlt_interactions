@@ -10,6 +10,10 @@ load("data/metadata_for_simulation.Rdata")
 diabetes_final <-  
   subset(diabetes_final, diabetes_final$atc_5 != "A10BF")
 
+# Illustrate classifications by condensing to drug level
+df_table <- diabetes_final %>% 
+  select(drug, atc_5,drug_class,atc) %>% 
+  distinct()
 
 ## Make same answer each set of classes (not each class)
 set.seed(1234)

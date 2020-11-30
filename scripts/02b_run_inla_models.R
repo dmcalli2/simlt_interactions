@@ -22,7 +22,8 @@ print(como_prev)
  diabetes$res <- res[, choose_scenario] + -0.1
 
 # Loop through each iteration
- scenario <- vector(length = 250, mode = "list")
+ scenario <- list()
+ drugs <- list()
  for (iter in 1:1000){
 
     ## Add values for specific iteration
@@ -82,9 +83,11 @@ print(como_prev)
       
       drug_models[[j]] <- summary(mod1_nested3)
     }
+    drugs[[iter]] <- drug_models
  }
-
+ 
+  dir.create(paste0("simuln/sim1/",como_prev,"/output/"), showWarnings = FALSE)
   # Saving each list as a data file
-  saveRDS(drug_models, file = paste0("simuln/sim1/",como_prev,"/output/sim1_",argsd[1],"_",argsd[2],"_",choose_scenario, "_drug.rds" ))
+  saveRDS(drugs, file = paste0("simuln/sim1/",como_prev,"/output/sim1_",argsd[1],"_",argsd[2],"_",choose_scenario, "_drug.rds" ))
   saveRDS(scenario, file = paste0("simuln/sim1/",como_prev,"/output/sim1_",argsd[1],"_",argsd[2],"_",choose_scenario, "_full.rds" ))
   

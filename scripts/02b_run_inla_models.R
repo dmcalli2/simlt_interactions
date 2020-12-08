@@ -1,6 +1,6 @@
 #02b_run_inla_model
 library(INLA)
-library(tidyverse)
+# library(tidyverse)
 INLA:::inla.dynload.workaround() 
 with_args <- TRUE
 ############ From now on putty, pass with args
@@ -30,7 +30,7 @@ print(como_prev)
     my_data$y <-  diabetes$res[diabetes$iteration == iter]
 
     ## Run model, trial within drug within ATC5 class within ATC4 class
-    mod1_nested2 <- inla(myform_nested2, 
+    mod1_nested2 <- inla(myform_nested2,
                  data = my_data,
                  # Add linear combinations to estimate drug-class
                  lincomb = c(d1= d1,d2= d2, d3= d3, d4= d4, d5= d5, d6= d6,
@@ -44,21 +44,20 @@ print(como_prev)
                  control.family = list(hyper = list(prec = list(fixed = TRUE, initial = 0))),
                  # Likelihood precisions
                  scale = my_data$y_prec,
-                 # Prior distribution for "fixed" effects - really for mu_mu 
+                 # Prior distribution for "fixed" effects - really for mu_mu
                  control.fixed = list(mean = 0, prec = 0.25),
                  # Optionally compute DIC
                  control.compute = list(config=TRUE,dic = TRUE, waic = TRUE),
                  verbose = FALSE)
     # Storing iterations in a single list
     scenario[[iter]] <- summary(mod1_nested2)
-    
     drug_models <- list()
     
     for(j in 1:length(unique(my_data$mydrug)))
     {
       
       # Reduce down to include data only from individual drug
-      sel_drug_mydata <-my_data %>% filter(mydrug==j)
+      sel_drug_mydata <- my_data[my_data$mydrug==j, ]
       
       ## Run model, trial within drug 
       mod1_nested3 <- inla(myform_nested3, 

@@ -106,7 +106,7 @@ d24 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, 1, NA, NA, NA), mydr
 ## Write drug-only model
 myform_nested3 <- y ~ -1 + mydrug + 
   f(trial, model = "iid", 
-    hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 0.1)))) 
+    hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 1)))) 
 
 ## Make part of model matrix which is identical for all iterations
 my_drug_n <- as.numeric(as.factor(diabetes_final$drug))

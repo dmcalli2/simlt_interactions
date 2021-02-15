@@ -1,0 +1,9 @@
+qsub simuln/sim1/std/1_std_atc5_0.05_trial_0.05_drug_0.05_drug.sh
+qsub simuln/sim1/std/2_std_atc5_0.15_trial_0.05_drug_0.05_drug.sh
+qsub simuln/sim1/std/3_std_atc5_0.25_trial_0.05_drug_0.05_drug.sh
+qsub simuln/sim1/std/4_std_atc5_0.05_trial_0.15_drug_0.05_drug.sh
+qsub simuln/sim1/std/5_std_atc5_0.05_trial_0.25_drug_0.05_drug.sh
+qsub simuln/sim1/std/6_std_atc5_0.05_trial_0.05_drug_0.15_drug.sh
+qsub simuln/sim1/std/7_std_atc5_0.05_trial_0.05_drug_0.25_drug.sh
+qsub simuln/sim1/std/8_std_atc5_0.15_trial_0.15_drug_0.15_drug.sh
+qsub simuln/sim1/std/9_std_atc5_0.25_trial_0.25_drug_0.25_drug.sh

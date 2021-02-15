@@ -44,15 +44,11 @@ rownames(res) <- paste(diabetes$atc_5, diabetes$drug, diabetes$nct_id, diabetes$
 # Add in se term for interaction
 
 #Como_prevs
-<<<<<<< HEAD
-como_prev <- c("hi")
+
+#como_prev <- c("hi")
 #como_prev <- c("std")
-#como_prev <- c("lo")
-=======
-# como_prev <- c("hi")
-# como_prev <- c("std")
-# como_prev <- c("lo")
->>>>>>> 622f024be32773e8694518721e9d294c0b139346
+como_prev <- c("lo")
+
 
 comorbidity_prev <- ifelse(como_prev == "hi", 0.5, NA) #cardiovascular disease
 comorbidity_prev <- ifelse(como_prev == "std", 0.2, comorbidity_prev)

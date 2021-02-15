@@ -44,9 +44,15 @@ rownames(res) <- paste(diabetes$atc_5, diabetes$drug, diabetes$nct_id, diabetes$
 # Add in se term for interaction
 
 #Como_prevs
+<<<<<<< HEAD
 como_prev <- c("hi")
 #como_prev <- c("std")
 #como_prev <- c("lo")
+=======
+# como_prev <- c("hi")
+# como_prev <- c("std")
+# como_prev <- c("lo")
+>>>>>>> 622f024be32773e8694518721e9d294c0b139346
 
 comorbidity_prev <- ifelse(como_prev == "hi", 0.5, NA) #cardiovascular disease
 comorbidity_prev <- ifelse(como_prev == "std", 0.2, comorbidity_prev)
@@ -140,6 +146,7 @@ my_data_for_table <- cbind(diabetes_final, my_data) %>%
 #write.csv(my_data_for_table, file= "./tables/sim1my_data.csv")  
 
 ### Create scripts to run on HPCC
+
 scenarios <- c("atc5_0.05_trial_0.05_drug_0.05",
                "atc5_0.15_trial_0.05_drug_0.05",
                "atc5_0.25_trial_0.05_drug_0.05",
@@ -165,6 +172,7 @@ for(scenario in scenarios) {
            "#PBS -l nodes=1:ppn=1:centos6",
            "#PBS -l cput=60:00:00",
        "#PBS -l walltime=72:00:00") ## setting walltime at >4hrs is necessary for low prevalence runs, but should be avoided for others as it bumps up into the long queue
+
   
   act <- paste("/usr/bin/Rscript", paste0(modelvect[modelchoose]),
                ## act <- paste("/usr/bin/Rscript simuln/2_02c_run_inla_class_level.R",

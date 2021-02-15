@@ -36,9 +36,10 @@ print(como_prev)
     
     for(j in 1:length(unique(my_data$mydrug)))
     {
-      browser()
+      #browser()
       # Reduce down to include data only from individual drug
       sel_drug_mydata <- my_data[my_data$mydrug==j, ]
+      sel_drug_mydata$mydrug <- 1 #Have to recode to 1 in order to be consistent across drugs
       
       ## Run model, trial within drug 
       mod1_nested3 <- inla(myform_nested3, 
@@ -59,7 +60,7 @@ print(como_prev)
                            # Optionally compute DIC
                            verbose = FALSE,
                            control.compute = list(config=TRUE,dic = TRUE, waic = TRUE),
-                           control.inla = list(lincomb.derived.only=FALSE))
+                           control.inla = list())
       
       drug_models[[j]] <- summary(mod1_nested3)
     }

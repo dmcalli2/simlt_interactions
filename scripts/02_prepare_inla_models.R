@@ -44,9 +44,9 @@ rownames(res) <- paste(diabetes$atc_5, diabetes$drug, diabetes$nct_id, diabetes$
 # Add in se term for interaction
 
 #Como_prevs
-# como_prev <- c("hi")
-# como_prev <- c("std")
-# como_prev <- c("lo")
+como_prev <- c("hi")
+#como_prev <- c("std")
+#como_prev <- c("lo")
 
 comorbidity_prev <- ifelse(como_prev == "hi", 0.5, NA) #cardiovascular disease
 comorbidity_prev <- ifelse(como_prev == "std", 0.2, comorbidity_prev)
@@ -106,7 +106,7 @@ d24 <- inla.make.lincomb(myatc4 = 1, myatc5 = c(NA, NA, NA, 1, NA, NA, NA), mydr
 ## Write drug-only model
 myform_nested3 <- y ~ -1 + mydrug + 
   f(trial, model = "iid", 
-    hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 0.1)))) 
+    hyper = list(prec = list(prior = "logtnormal", param = c(mean = 0, prec = 1)))) 
 
 ## Make part of model matrix which is identical for all iterations
 my_drug_n <- as.numeric(as.factor(diabetes_final$drug))
@@ -140,12 +140,20 @@ my_data_for_table <- cbind(diabetes_final, my_data) %>%
 #write.csv(my_data_for_table, file= "./tables/sim1my_data.csv")  
 
 ### Create scripts to run on HPCC
+scenarios <- c("atc5_0.05_trial_0.05_drug_0.05",
+               "atc5_0.15_trial_0.05_drug_0.05",
+               "atc5_0.25_trial_0.05_drug_0.05",
+               "atc5_0.05_trial_0.15_drug_0.05",
+               "atc5_0.05_trial_0.25_drug_0.05",
+               "atc5_0.05_trial_0.05_drug_0.15",
+               "atc5_0.05_trial_0.05_drug_0.25",
+               "atc5_0.15_trial_0.15_drug_0.15",
+               "atc5_0.25_trial_0.25_drug_0.25")
 
-
-modelvect <- c(drug = "simuln/02b_run_inla_models_drug.R", 
-               scen = "simuln/02b_run_inla_models_scenario.R")
+modelvect <- c(drug = "simuln/02b_run_inla_models_drug.R")#, 
+               #scen = "simuln/02b_run_inla_models_scenario.R")
 count <- 0
-for(scenario in res_names) {
+for(scenario in scenarios) {
   for(modelchoose in names(modelvect)) {
   count <- count + 1
   con <- file(description =  paste0("unix_scripts/sim1/",como_prev,"/",
@@ -155,8 +163,8 @@ for(scenario in res_names) {
                                     modelchoose, ".sh"), open = "wb")
   top <- c("#!/bin/bash",
            "#PBS -l nodes=1:ppn=1:centos6",
-           "#PBS -l cput=48:00:00",
-       "#PBS -l walltime=50:00:00") ## setting walltime at >4hrs is necessary for low prevalence runs, but should be avoided for others as it bumps up into the long queue
+           "#PBS -l cput=60:00:00",
+       "#PBS -l walltime=72:00:00") ## setting walltime at >4hrs is necessary for low prevalence runs, but should be avoided for others as it bumps up into the long queue
   
   act <- paste("/usr/bin/Rscript", paste0(modelvect[modelchoose]),
                ## act <- paste("/usr/bin/Rscript simuln/2_02c_run_inla_class_level.R",

@@ -1,0 +1,65 @@
+Loading required package: sp
+Loading required package: Matrix
+This is INLA_17.06.20 built 2020-12-02 19:28:39 UTC.
+See www.r-inla.org/contact-us for how to get help.
+Loading required package: sp
+Loading required package: Matrix
+       
+[3] "atc5_0.05_trial_0.05_drug_0.05"
+[1] "atc5_0.05_trial_0.05_drug_0.05"
+[1] "std"
+Loading required package: Matrix
+12-02 19:28:39 UTC.
+See www.r-inla.org/contact-us for how to get help.
+Loading required package: Matrix
+    "std"                           
+[3] "atc5_0.15_trial_0.05_drug_0.0[1] "3"                              "std"                           
+[3] "atc5_0.25_trial_0.05_drug_0.05"
+[1] "atc5_0.25_trial_0.05_drug_0.05"
+[1] "std"
+                   
+[3] "atc5_0.15_trial_0.15_drug_0.1[1] "9"                              "std"                           
+[3] "atc5_0.25_trial_0.25_drug_0.25"
+[1] "atc5_0.25_trial_0.25_drug_0.25"
+[1] "std"
+This is INLA_17.06.20 built 2020-12-02 19:28:39 UTC.
+See www.r-inla.org/contact-us for how to get help.
+[1] "4"                              "std"                           
+[3] "atc5_0.05_trial_0.15_drug_0.05"
+ "5"                              "std"                           
+[3] "atc5_0.05_trial_0.25_drug_0.0[1] "6"                              "std"                           
+[3] "atc5_0.05_trial_0.05_drug_0.15"
+[1] "atc5_0.05_trial_0.05_drug_0.15"
+[1] "std"
+                   
+[3] "atc5_0.05_trial_0.05_drug_0.25"
+[1] "atc5_0.05_trial_0.05_drug_0.25"
+[1] "std"
+[1] "atc5_0.05_trial_0.15_drug_0.05"
+[1] "std"
+sh: line 1: 61964 Segmentation fault      '/export/home/dma24j/R/x86_64-redhat-linux-gnu-library/3.5/INLA/bin/linux/64bit/inla.static' -b -s -v '/tmp/Rtmplvacen/file9f2336bd06ae/Model.ini' > /tmp/Rtmplvacen/file9f2336bd06ae/Logfile.txt
+Error in inla.inlaprogram.has.crashed() : 
+  The inla-program exited with an error. Unless you interupted it yourself, please rerun with verbose=TRUE and check the output carefully.
+  If this does not help, please contact the developers at <help@r-inla.org>.
+Calls: inla -> inla.inlaprogram.has.crashed
+Execution halted
+sh: line 1: 10658 Segmentation fault      '/export/home/dma24j/R/x86_64-redhat-linux-gnu-library/3.5/INLA/bin/linux/64bit/inla.static' -b -s -v '/tmp/RtmpNRrH5a/filef5ec64e5326c/Model.ini' > /tmp/RtmpNRrH5a/filef5ec64e5326c/Logfile.txt
+Error in inla.inlaprogram.has.crashed() : 
+  The inla-program exited with an error. Unless you interupted it yourself, please rerun with verbose=TRUE and check the output carefully.
+  If this does not help, please contact the developers at <help@r-inla.org>.
+Calls: inla -> inla.inlaprogram.has.crashed
+Execution halted
+Loading required package: sp
+Loading required package: Matrix
+This is INLA_17.06.20 built 2020-12-02 19:28:39 UTC.
+See www.r-inla.org/contact-us for how to get help.
+[1] "1"                              "std"                           
+[3] "atc5_0.05_trial_0.05_drug_0.05"
+[1] "atc5_0.05_trial_0.05_drug_0.05"
+[1] "std"
+sh: line 1: 18424 Segmentation fault      '/export/home/dma24j/R/x86_64-redhat-linux-gnu-library/3.5/INLA/bin/linux/64bit/inla.static' -b -s -v '/tmp/RtmptCbA5z/file40d53babd91d/Model.ini' > /tmp/RtmptCbA5z/file40d53babd91d/Logfile.txt
+Error in inla.inlaprogram.has.crashed() : 
+  The inla-program exited with an error. Unless you interupted it yourself, please rerun with verbose=TRUE and check the output carefully.
+  If this does not help, please contact the developers at <help@r-inla.org>.
+Calls: inla -> inla.inlaprogram.has.crashed
+Execution halted
